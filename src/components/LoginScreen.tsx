@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ShieldAlert, LogIn, ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
+import {
+  ShieldAlert,
+  LogIn,
+  ArrowRight,
+  Sparkles,
+  AlertTriangle,
+} from "lucide-react";
 import { motion } from "motion/react";
 
 interface LoginScreenProps {
@@ -20,7 +26,11 @@ interface Particle {
   pulsePhase: number;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOffline, theme }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({
+  onLogin,
+  onEnterOffline,
+  theme,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
   const [isConnecting, setIsConnecting] = useState(false);
@@ -51,7 +61,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height + canvas.height, // start below or throughout
         size: isSpark ? Math.random() * 2.5 + 2.5 : Math.random() * 1.5 + 0.8,
-        speedY: isSpark ? -(Math.random() * 1.5 + 1.2) : -(Math.random() * 0.6 + 0.2),
+        speedY: isSpark
+          ? -(Math.random() * 1.5 + 1.2)
+          : -(Math.random() * 0.6 + 0.2),
         speedX: Math.random() * 0.4 - 0.2,
         opacity: Math.random() * 0.6 + 0.2,
         spark: isSpark,
@@ -61,7 +73,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
     }
 
     // Keep particles spread on initial load
-    particles.forEach(p => {
+    particles.forEach((p) => {
       p.y = Math.random() * canvas.height;
     });
 
@@ -77,8 +89,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Smooth lerp for parallax mouse shifting
-      mouseRef.current.x += (mouseRef.current.targetX - mouseRef.current.x) * 0.08;
-      mouseRef.current.y += (mouseRef.current.targetY - mouseRef.current.y) * 0.08;
+      mouseRef.current.x +=
+        (mouseRef.current.targetX - mouseRef.current.x) * 0.08;
+      mouseRef.current.y +=
+        (mouseRef.current.targetY - mouseRef.current.y) * 0.08;
 
       particles.forEach((p) => {
         // Apply drifting speed and slightly modulate with mouse parallax
@@ -157,19 +171,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
   };
 
   return (
-    <div className={`relative min-h-screen flex items-center justify-center p-4 overflow-hidden select-none transition-colors duration-500 ${
-      theme === "light" ? "bg-gradient-to-br from-[#F8F7FC] to-[#EDE9FE] text-[#1E1B2E]" : "bg-black text-zinc-100"
-    }`} id="login-container">
+    <div
+      className={`relative min-h-screen flex items-center justify-center p-4 overflow-hidden select-none transition-colors duration-500 ${
+        theme === "light"
+          ? "bg-gradient-to-br from-[#F8F7FC] to-[#EDE9FE] text-[#1E1B2E]"
+          : "bg-black text-zinc-100"
+      }`}
+      id="login-container"
+    >
       {/* Background Canvas for Spark Particles */}
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 z-0 pointer-events-none"
+      />
 
       {/* Background Glow Blobs */}
-      <div className={`absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none mix-blend-screen opacity-10 transition-colors duration-[800ms] ${
-        theme === "light" ? "bg-purple-300" : "bg-purple-600"
-      }`} />
-      <div className={`absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none mix-blend-screen opacity-10 transition-colors duration-[800ms] ${
-        theme === "light" ? "bg-cyan-300" : "bg-cyan-600"
-      }`} />
+      <div
+        className={`absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none mix-blend-screen opacity-10 transition-colors duration-[800ms] ${
+          theme === "light" ? "bg-purple-300" : "bg-purple-600"
+        }`}
+      />
+      <div
+        className={`absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none mix-blend-screen opacity-10 transition-colors duration-[800ms] ${
+          theme === "light" ? "bg-cyan-300" : "bg-cyan-600"
+        }`}
+      />
 
       {/* Foreground Login Card */}
       <div className="relative z-10 w-full max-w-md">
@@ -178,28 +204,38 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className={`w-full p-8 rounded-3xl border transition-all duration-300 ${
-            theme === "light" 
-              ? "bg-white/80 border-[#e2e0f0] shadow-[0_20px_50px_rgba(109,40,217,0.1)] backdrop-blur-xl text-[#1E1B2E]" 
+            theme === "light"
+              ? "bg-white/80 border-[#e2e0f0] shadow-[0_20px_50px_rgba(109,40,217,0.1)] backdrop-blur-xl text-[#1E1B2E]"
               : "bg-zinc-950/40 border-zinc-850 shadow-[0_25px_60px_rgba(245,158,11,0.05)] backdrop-blur-xl text-zinc-100"
           }`}
           style={{
-            boxShadow: theme === "light" 
-              ? "0 25px 60px -15px rgba(109, 40, 217, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.8)"
-              : "0 25px 60px -15px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05)"
+            boxShadow:
+              theme === "light"
+                ? "0 25px 60px -15px rgba(109, 40, 217, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.8)"
+                : "0 25px 60px -15px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.05)",
           }}
         >
           {/* Logo Container with continuous custom glow */}
           <div className="flex flex-col items-center text-center space-y-4">
             <motion.div
               animate={{
-                boxShadow: theme === "light"
-                  ? ["0 0 10px rgba(124, 58, 237, 0.2)", "0 0 25px rgba(124, 58, 237, 0.5)", "0 0 10px rgba(124, 58, 237, 0.2)"]
-                  : ["0 0 15px rgba(245, 158, 11, 0.3)", "0 0 35px rgba(245, 158, 11, 0.7)", "0 0 15px rgba(245, 158, 11, 0.3)"]
+                boxShadow:
+                  theme === "light"
+                    ? [
+                        "0 0 10px rgba(124, 58, 237, 0.2)",
+                        "0 0 25px rgba(124, 58, 237, 0.5)",
+                        "0 0 10px rgba(124, 58, 237, 0.2)",
+                      ]
+                    : [
+                        "0 0 15px rgba(245, 158, 11, 0.3)",
+                        "0 0 35px rgba(245, 158, 11, 0.7)",
+                        "0 0 15px rgba(245, 158, 11, 0.3)",
+                      ],
               }}
               transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
               className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                theme === "light" 
-                  ? "bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg text-white" 
+                theme === "light"
+                  ? "bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg text-white"
                   : "bg-gradient-to-br from-amber-500 to-orange-600 text-black"
               }`}
             >
@@ -207,13 +243,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
             </motion.div>
 
             <div className="space-y-1.5">
-              <h2 className={`text-2xl font-extrabold tracking-tight font-display ${
-                theme === "light" ? "text-slate-900" : "text-white"
-              }`}>
+              <h2
+                className={`text-2xl font-extrabold tracking-tight font-display ${
+                  theme === "light" ? "text-slate-900" : "text-white"
+                }`}
+              >
                 DeadlineGenie AI
               </h2>
               <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
-                Unlock tactical deadline prevention, automated agenda mapping, and smart calendar interception.
+                Unlock tactical deadline prevention, automated agenda mapping,
+                and smart calendar interception.
               </p>
             </div>
           </div>
@@ -231,7 +270,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
               }`}
             >
               <LogIn className="h-4 w-4 shrink-0" />
-              <span>{isConnecting ? "Activating Interface..." : "Connect Google Calendar"}</span>
+              <span>
+                {isConnecting
+                  ? "Activating Interface..."
+                  : "Connect Google Calendar"}
+              </span>
             </button>
 
             {/* Offline Sandbox Option */}
@@ -250,14 +293,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onEnterOfflin
 
           {/* Secondary Footer Info */}
           <div className="mt-8 border-t border-dashed transition-colors duration-300 border-zinc-800/50 pt-5 flex items-start gap-2.5">
-            <Sparkles className={`h-4.5 w-4.5 shrink-0 mt-0.5 ${
-              theme === "light" ? "text-purple-600" : "text-amber-500"
-            }`} />
+            <Sparkles
+              className={`h-4.5 w-4.5 shrink-0 mt-0.5 ${
+                theme === "light" ? "text-purple-600" : "text-amber-500"
+              }`}
+            />
             <div className="text-left text-[10px] text-zinc-500 leading-normal">
-              <span className={`font-semibold block mb-0.5 ${theme === "light" ? "text-purple-700" : "text-amber-400"}`}>
+              <span
+                className={`font-semibold block mb-0.5 ${theme === "light" ? "text-purple-700" : "text-amber-400"}`}
+              >
                 Genie Intelligence Protocol:
               </span>
-              Synchronize upcoming objectives with Google Workspace to enable autonomous scheduling, habit balancing, and hands-free vocal assistance.
+              Synchronize upcoming objectives with Google Workspace to enable
+              autonomous scheduling, habit balancing, and hands-free vocal
+              assistance.
             </div>
           </div>
         </motion.div>

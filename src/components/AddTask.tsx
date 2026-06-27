@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Task } from "../types";
-import { 
-  Plus, 
-  Mic, 
-  MicOff, 
-  Sparkles, 
-  Clock, 
-  Calendar, 
-  Tag, 
+import {
+  Plus,
+  Mic,
+  MicOff,
+  Sparkles,
+  Clock,
+  Calendar,
+  Tag,
   Sliders,
   ListTodo,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -23,32 +23,40 @@ interface AddTaskProps {
 export default function AddTask({
   onAddTask,
   onNavigateToDashboard,
-  tasks = []
+  tasks = [],
 }: AddTaskProps) {
   // Task state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState(45);
-  const [importance, setImportance] = useState<"high" | "medium" | "low">("medium");
+  const [importance, setImportance] = useState<"high" | "medium" | "low">(
+    "medium",
+  );
   const [category, setCategory] = useState("Study");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryInput, setCustomCategoryInput] = useState("");
 
   const defaultCategories = ["Study", "Work", "Admin", "Life", "Health"];
-  const [dynamicCategories, setDynamicCategories] = useState<string[]>(defaultCategories);
+  const [dynamicCategories, setDynamicCategories] =
+    useState<string[]>(defaultCategories);
 
   useEffect(() => {
     if (tasks) {
       const uniqueTaskCategories = Array.from(
         new Set(
           tasks
-            .map(t => t.category)
-            .filter((cat): cat is string => !!cat && typeof cat === "string" && cat.trim() !== "")
-        )
+            .map((t) => t.category)
+            .filter(
+              (cat): cat is string =>
+                !!cat && typeof cat === "string" && cat.trim() !== "",
+            ),
+        ),
       );
       // Combine defaults with unique categories from current tasks
-      const combined = Array.from(new Set([...defaultCategories, ...uniqueTaskCategories]));
+      const combined = Array.from(
+        new Set([...defaultCategories, ...uniqueTaskCategories]),
+      );
       setDynamicCategories(combined);
     }
   }, [tasks]);
@@ -60,7 +68,9 @@ export default function AddTask({
 
   useEffect(() => {
     // Check Web Speech API support
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       setSpeechSupported(true);
       const rec = new SpeechRecognition();
@@ -80,15 +90,22 @@ export default function AddTask({
         const transcript = event.results[0][0].transcript;
         if (transcript) {
           const lower = transcript.toLowerCase().trim();
-          if (lower === "navigate to dashboard" || lower === "go to dashboard" || lower === "show dashboard") {
+          if (
+            lower === "navigate to dashboard" ||
+            lower === "go to dashboard" ||
+            lower === "show dashboard"
+          ) {
             onNavigateToDashboard();
             return;
           }
-          if (lower.includes("start focus session") || lower.includes("start focus")) {
+          if (
+            lower.includes("start focus session") ||
+            lower.includes("start focus")
+          ) {
             onNavigateToDashboard();
             return;
           }
-          setTitle(prev => prev ? `${prev} ${transcript}` : transcript);
+          setTitle((prev) => (prev ? `${prev} ${transcript}` : transcript));
         }
       };
 
@@ -114,20 +131,21 @@ export default function AddTask({
     e.preventDefault();
     if (!title.trim()) return;
 
-    const finalCategory = isCustomCategory 
-      ? (customCategoryInput.trim() || "General") 
+    const finalCategory = isCustomCategory
+      ? customCategoryInput.trim() || "General"
       : category;
 
     const newTask: Task = {
       id: crypto.randomUUID(),
       title: title.trim(),
       description: description.trim(),
-      dueDate: dueDate || new Date(Date.now() + 86400000).toISOString().split("T")[0],
+      dueDate:
+        dueDate || new Date(Date.now() + 86400000).toISOString().split("T")[0],
       importance,
       estimatedMinutes: Number(estimatedMinutes) || 45,
       category: finalCategory,
       completed: false,
-      orderIndex: tasks.length
+      orderIndex: tasks.length,
     };
 
     onAddTask(newTask);
@@ -141,22 +159,29 @@ export default function AddTask({
           <ListTodo className="h-6 w-6 text-amber-500" />
           Initialize New Objective
         </h2>
-        <p className="text-zinc-400 text-sm mt-1">Add details, configure priorities, or use vocal command transcription.</p>
+        <p className="text-zinc-400 text-sm mt-1">
+          Add details, configure priorities, or use vocal command transcription.
+        </p>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-2xl" id="add-task-card">
+      <div
+        className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-2xl"
+        id="add-task-card"
+      >
         {/* Top styling strip */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 via-purple-500/40 to-transparent" />
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* TITLE INPUT with Microphone button */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">Initiative Name / Title</label>
+            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
+              Initiative Name / Title
+            </label>
             <div className="relative flex items-center">
               <input
                 type="text"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Finish physics lab write-up or buy groceries..."
                 className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl pl-4 pr-12 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-semibold"
                 required
@@ -167,24 +192,30 @@ export default function AddTask({
                   type="button"
                   onClick={handleVoiceListen}
                   className={`absolute right-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                    isListening ? "bg-red-500/20 text-red-400 animate-pulse" : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                    isListening
+                      ? "bg-red-500/20 text-red-400 animate-pulse"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-850"
                   }`}
                   id="voice-transcribe-btn"
                   title="Speak to type"
                 >
-                  {isListening ? <Mic className="h-4.5 w-4.5" /> : <MicOff className="h-4.5 w-4.5" />}
+                  {isListening ? (
+                    <Mic className="h-4.5 w-4.5" />
+                  ) : (
+                    <MicOff className="h-4.5 w-4.5" />
+                  )}
                 </button>
               )}
             </div>
-            
+
             {/* Voice Dictation Tutorial Hint */}
             {speechSupported && (
-              <div 
+              <div
                 className={`mt-2 p-3 rounded-xl border transition-all duration-300 ${
-                  isListening 
-                    ? "bg-red-500/10 border-red-500/30 text-red-300" 
+                  isListening
+                    ? "bg-red-500/10 border-red-500/30 text-red-300"
                     : "bg-zinc-950/60 border-zinc-850/80 text-zinc-400"
-                }`} 
+                }`}
                 id="speech-api-guide"
               >
                 <div className="flex items-start gap-2.5">
@@ -192,18 +223,32 @@ export default function AddTask({
                     {isListening && (
                       <span className="absolute inline-flex h-4 w-4 rounded-full bg-red-500 opacity-75 animate-ping" />
                     )}
-                    <Mic className={`h-4 w-4 shrink-0 transition-colors ${
-                      isListening ? "text-red-400 animate-pulse" : "text-amber-500"
-                    }`} />
+                    <Mic
+                      className={`h-4 w-4 shrink-0 transition-colors ${
+                        isListening
+                          ? "text-red-400 animate-pulse"
+                          : "text-amber-500"
+                      }`}
+                    />
                   </div>
                   <div className="text-xs font-sans leading-relaxed">
                     {isListening ? (
                       <p className="font-semibold text-red-400">
-                        Speech API active: Dictate your goal clearly now. Speak naturally, and your vocal input will be transcribed in real-time straight into the input box above.
+                        Speech API active: Dictate your goal clearly now. Speak
+                        naturally, and your vocal input will be transcribed in
+                        real-time straight into the input box above.
                       </p>
                     ) : (
                       <p>
-                        <span className="font-semibold text-zinc-300">Hands-Free Dictation:</span> Click the microphone icon to initiate real-time transcription. Uses the high-fidelity <span className="text-amber-400 font-mono font-bold">Web Speech API</span> to translate spoken commands into task items instantly.
+                        <span className="font-semibold text-zinc-300">
+                          Hands-Free Dictation:
+                        </span>{" "}
+                        Click the microphone icon to initiate real-time
+                        transcription. Uses the high-fidelity{" "}
+                        <span className="text-amber-400 font-mono font-bold">
+                          Web Speech API
+                        </span>{" "}
+                        to translate spoken commands into task items instantly.
                       </p>
                     )}
                   </div>
@@ -214,7 +259,7 @@ export default function AddTask({
             {/* Visualizer soundwave while listening */}
             <AnimatePresence>
               {isListening && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 20 }}
                   exit={{ opacity: 0, height: 0 }}
@@ -223,12 +268,12 @@ export default function AddTask({
                   <span>Voice level:</span>
                   <div className="flex gap-0.5 items-end justify-start h-3 w-16">
                     {[1, 2, 3, 4, 5].map((val) => (
-                      <div 
-                        key={val} 
+                      <div
+                        key={val}
                         className="w-1 bg-red-400 rounded-full animate-pulse"
                         style={{
                           height: `${30 + Math.random() * 70}%`,
-                          animationDuration: `${0.3 + val * 0.15}s`
+                          animationDuration: `${0.3 + val * 0.15}s`,
                         }}
                       />
                     ))}
@@ -240,10 +285,12 @@ export default function AddTask({
 
           {/* DESCRIPTION */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">Context & Tactical Details</label>
+            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
+              Context & Tactical Details
+            </label>
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide references, chapters to cover, or specific criteria to check..."
               rows={3}
               className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium resize-none"
@@ -261,7 +308,9 @@ export default function AddTask({
               <input
                 type="number"
                 value={estimatedMinutes}
-                onChange={e => setEstimatedMinutes(Math.max(5, Number(e.target.value)))}
+                onChange={(e) =>
+                  setEstimatedMinutes(Math.max(5, Number(e.target.value)))
+                }
                 className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-semibold"
                 min="5"
                 required
@@ -277,7 +326,7 @@ export default function AddTask({
               <input
                 type="date"
                 value={dueDate}
-                onChange={e => setDueDate(e.target.value)}
+                onChange={(e) => setDueDate(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-semibold"
                 required
                 id="add-task-duedate"
@@ -319,12 +368,12 @@ export default function AddTask({
                 <Tag className="h-3.5 w-3.5 text-zinc-400" />
                 Category Corridor
               </label>
-              
+
               {!isCustomCategory ? (
                 <div className="relative">
                   <select
                     value={category}
-                    onChange={e => {
+                    onChange={(e) => {
                       if (e.target.value === "__add_custom__") {
                         setIsCustomCategory(true);
                       } else {
@@ -335,17 +384,28 @@ export default function AddTask({
                     id="add-task-category"
                   >
                     {dynamicCategories.map((cat) => (
-                      <option key={cat} value={cat} className="bg-zinc-900 text-white">
+                      <option
+                        key={cat}
+                        value={cat}
+                        className="bg-zinc-900 text-white"
+                      >
                         {cat}
                       </option>
                     ))}
-                    <option value="__add_custom__" className="bg-zinc-900 text-amber-400 font-bold">
+                    <option
+                      value="__add_custom__"
+                      className="bg-zinc-900 text-amber-400 font-bold"
+                    >
                       ➕ + Create Custom Category...
                     </option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                    <svg
+                      className="fill-current h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                     </svg>
                   </div>
                 </div>
@@ -355,7 +415,7 @@ export default function AddTask({
                     <input
                       type="text"
                       value={customCategoryInput}
-                      onChange={e => setCustomCategoryInput(e.target.value)}
+                      onChange={(e) => setCustomCategoryInput(e.target.value)}
                       placeholder="Enter new custom category (e.g. Creative, Side Hustle)..."
                       className="flex-1 bg-zinc-950 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-semibold"
                       id="add-task-custom-category-input"
@@ -373,7 +433,10 @@ export default function AddTask({
                       Use Dropdown
                     </button>
                   </div>
-                  <p className="text-[10px] text-zinc-500 font-mono">Create a custom, high-velocity category tag for your dashboard matrix.</p>
+                  <p className="text-[10px] text-zinc-500 font-mono">
+                    Create a custom, high-velocity category tag for your
+                    dashboard matrix.
+                  </p>
                 </div>
               )}
             </div>

@@ -729,8 +729,8 @@ app.post("/api/send-email", async (req, res) => {
   try {
     const { to, subject, html, text } = req.body;
     
-    const userEmail = process.env.GMAIL_USER || "adityaxtyzhd@gmail.com";
-    const appPassword = process.env.GMAIL_APP_PASSWORD || "vszy unvi thzj mgcm";
+    const userEmail = process.env.GMAIL_USER;
+    const appPassword = process.env.GMAIL_APP_PASSWORD;
 
     if (!userEmail || !appPassword) {
       return res.status(400).json({ error: "Email automation configuration missing (GMAIL_USER / GMAIL_APP_PASSWORD)." });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Task, Habit, ScheduleItem } from "./types";
 import Dashboard from "./components/Dashboard";
 import AddTask from "./components/AddTask";
@@ -167,7 +167,7 @@ export default function App() {
   // Theme State
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     const saved = localStorage.getItem("deadline_genie_theme");
-    return (saved as "dark" | "light") || "dark";
+    return (saved as "dark" | "light") || "light";
   });
 
   // Sync theme selection to document element & localStorage
@@ -283,6 +283,14 @@ export default function App() {
 
   // Warnings & Info notifications
   const [apiWarning, setApiWarning] = useState<string | null>(null);
+
+  // Undo Promote State
+  const [undoState, setUndoState] = useState<{
+    previousTasks: Task[];
+    taskId: string;
+    visible: boolean;
+  } | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Selected task state for Agent Plan
   const [selectedPlanTaskId, setSelectedPlanTaskId] = useState<string | null>(null);
@@ -420,6 +428,9 @@ export default function App() {
     const targetTask = tasks.find(t => t.id === taskId);
     if (!targetTask) return;
 
+    // Cache the previous state for undo
+    const previousTasksState = [...tasks];
+
     const otherTasks = tasks.filter(t => t.id !== taskId);
     const sortedOthers = [...otherTasks].sort((a, b) => {
       const aOrder = a.orderIndex ?? 999999;
@@ -448,6 +459,32 @@ export default function App() {
     ];
 
     await handleTasksChange(reorderedAll);
+
+    // Show undo toast
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+    setUndoState({
+      previousTasks: previousTasksState,
+      taskId,
+      visible: true
+    });
+    undoTimeoutRef.current = setTimeout(() => {
+      setUndoState(prev => prev ? { ...prev, visible: false } : null);
+    }, 5000);
+  };
+
+  const handleUndoPromote = async () => {
+    if (!undoState) return;
+    
+    // Revert to cached state
+    await handleTasksChange(undoState.previousTasks);
+    
+    // Hide toast
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+    setUndoState(null);
   };
 
   const handleToggleTaskCompletion = (taskId: string) => {
@@ -1795,6 +1832,39 @@ export default function App() {
               setActiveFocusTask(null);
             }} 
           />
+        )}
+      </AnimatePresence>
+
+      {/* UNDO PROMOTE TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {undoState?.visible && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-800 shadow-2xl px-4 py-3 rounded-2xl flex items-center gap-4 z-50 text-sm"
+          >
+            <div className="flex flex-col">
+              <span className="text-white font-medium">Task Promoted</span>
+              <span className="text-zinc-400 text-xs">Importance set to high and moved to top.</span>
+            </div>
+            <div className="w-px h-8 bg-zinc-800 mx-1"></div>
+            <button
+              onClick={handleUndoPromote}
+              className="text-amber-500 font-bold hover:text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Undo
+            </button>
+            <button 
+              onClick={() => {
+                if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+                setUndoState(null);
+              }}
+              className="text-zinc-500 hover:text-zinc-300 ml-1 p-1"
+            >
+              ✕
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 

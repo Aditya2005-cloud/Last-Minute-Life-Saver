@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { Task, Habit, ScheduleItem } from "../types";
-import { 
-  Calendar, 
-  Clock, 
-  Download, 
-  Eye, 
-  RefreshCw, 
-  Zap, 
-  Coffee, 
-  ShieldAlert, 
+import {
+  Calendar,
+  Clock,
+  Download,
+  Eye,
+  RefreshCw,
+  Zap,
+  Coffee,
+  ShieldAlert,
   Activity,
   Heart,
-  CalendarCheck
+  CalendarCheck,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -19,7 +19,10 @@ interface SchedulePlannerProps {
   tasks: Task[];
   habits: Habit[];
   schedule: ScheduleItem[];
-  onGenerateSchedule: (workingHoursStart: string, workingHoursEnd: string) => Promise<void>;
+  onGenerateSchedule: (
+    workingHoursStart: string,
+    workingHoursEnd: string,
+  ) => Promise<void>;
   isLoadingSchedule: boolean;
 }
 
@@ -28,7 +31,7 @@ export default function SchedulePlanner({
   habits,
   schedule,
   onGenerateSchedule,
-  isLoadingSchedule
+  isLoadingSchedule,
 }: SchedulePlannerProps) {
   const [workingHoursStart, setWorkingHoursStart] = useState("08:00 AM");
   const [workingHoursEnd, setWorkingHoursEnd] = useState("06:00 PM");
@@ -40,10 +43,11 @@ export default function SchedulePlanner({
 
   const handleExportICS = () => {
     if (schedule.length === 0) return;
-    
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Last Minute Life Saver//Schedule//EN\n";
+
+    let icsContent =
+      "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Last Minute Life Saver//Schedule//EN\n";
     const todayStr = new Date().toISOString().split("T")[0].replace(/-/g, "");
-    
+
     schedule.forEach((item, index) => {
       const timeRegex = /(\d+):(\d+)\s*(AM|PM)/i;
       const match = item.time.match(timeRegex);
@@ -53,20 +57,20 @@ export default function SchedulePlanner({
         const ampm = match[3].toUpperCase();
         if (ampm === "PM" && hr < 12) hr += 12;
         if (ampm === "AM" && hr === 12) hr = 0;
-        
+
         const hrStr = String(hr).padStart(2, "0");
         const startIso = `${todayStr}T${hrStr}${min}00`;
-        
+
         // Compute approximate end time based on duration
         const todayDateStr = new Date().toISOString().split("T")[0];
         const dummyStartStr = `${todayDateStr}T${hrStr}:${min}:00`;
         const startMs = new Date(dummyStartStr).getTime();
-        
+
         let endIso = "";
         if (!isNaN(startMs)) {
           const endMs = startMs + item.durationMinutes * 60000;
           const endDate = new Date(endMs);
-          
+
           const endHr = String(endDate.getHours()).padStart(2, "0");
           const endMin = String(endDate.getMinutes()).padStart(2, "0");
           endIso = `${todayStr}T${endHr}${endMin}00`;
@@ -75,7 +79,7 @@ export default function SchedulePlanner({
           const fallbackEndHr = String((hr + 1) % 24).padStart(2, "0");
           endIso = `${todayStr}T${fallbackEndHr}${min}00`;
         }
-        
+
         icsContent += "BEGIN:VEVENT\n";
         icsContent += `UID:uid_${index}_${Date.now()}@lastminutelifesaver.app\n`;
         icsContent += `DTSTAMP:${todayStr}T000000Z\n`;
@@ -86,14 +90,19 @@ export default function SchedulePlanner({
         icsContent += "END:VEVENT\n";
       }
     });
-    
+
     icsContent += "END:VCALENDAR";
-    
-    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+
+    const blob = new Blob([icsContent], {
+      type: "text/calendar;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Crisis_Survival_Schedule_${new Date().toISOString().split('T')[0]}.ics`);
+    link.setAttribute(
+      "download",
+      `Crisis_Survival_Schedule_${new Date().toISOString().split("T")[0]}.ics`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -133,7 +142,10 @@ export default function SchedulePlanner({
             <CalendarCheck className="h-6 w-6 text-amber-400" />
             AI Hourly Block-Planner
           </h2>
-          <p className="text-zinc-400 text-sm mt-1">Interleave hyper-focus sessions, mental cooling reboots, and high-urgency habits.</p>
+          <p className="text-zinc-400 text-sm mt-1">
+            Interleave hyper-focus sessions, mental cooling reboots, and
+            high-urgency habits.
+          </p>
         </div>
 
         {schedule.length > 0 && (
@@ -150,9 +162,12 @@ export default function SchedulePlanner({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* PARAMETERS PANEL (4 cols) */}
-        <div className="lg:col-span-4 bg-zinc-900 border border-zinc-800/80 rounded-xl p-6 shadow-xl relative overflow-hidden" id="schedule-parameters">
+        <div
+          className="lg:col-span-4 bg-zinc-900 border border-zinc-800/80 rounded-xl p-6 shadow-xl relative overflow-hidden"
+          id="schedule-parameters"
+        >
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 to-transparent" />
-          
+
           <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
             <Activity className="h-5 w-5 text-amber-500" />
             Sprint Parameters
@@ -160,10 +175,12 @@ export default function SchedulePlanner({
 
           <form onSubmit={handleOptimize} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">Start Shift</label>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                Start Shift
+              </label>
               <select
                 value={workingHoursStart}
-                onChange={e => setWorkingHoursStart(e.target.value)}
+                onChange={(e) => setWorkingHoursStart(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
                 id="start-shift-select"
               >
@@ -178,10 +195,12 @@ export default function SchedulePlanner({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">Ceasefire Shift</label>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                Ceasefire Shift
+              </label>
               <select
                 value={workingHoursEnd}
-                onChange={e => setWorkingHoursEnd(e.target.value)}
+                onChange={(e) => setWorkingHoursEnd(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
                 id="end-shift-select"
               >
@@ -195,20 +214,29 @@ export default function SchedulePlanner({
             </div>
 
             <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/80 text-xs text-zinc-400 space-y-2">
-              <span className="font-semibold text-zinc-300 block">System Feeds Detected:</span>
+              <span className="font-semibold text-zinc-300 block">
+                System Feeds Detected:
+              </span>
               <div className="flex items-center justify-between">
                 <span>Active deadlined tasks:</span>
-                <span className="font-mono text-amber-400 font-semibold">{tasks.filter(t => !t.completed).length}</span>
+                <span className="font-mono text-amber-400 font-semibold">
+                  {tasks.filter((t) => !t.completed).length}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Habit constraints:</span>
-                <span className="font-mono text-cyan-400 font-semibold">{habits.length}</span>
+                <span className="font-mono text-cyan-400 font-semibold">
+                  {habits.length}
+                </span>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={isLoadingSchedule || tasks.filter(t => !t.completed).length === 0}
+              disabled={
+                isLoadingSchedule ||
+                tasks.filter((t) => !t.completed).length === 0
+              }
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-semibold text-sm rounded-lg border border-transparent shadow-lg shadow-orange-500/15 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               id="optimize-schedule-submit"
             >
@@ -228,32 +256,57 @@ export default function SchedulePlanner({
         </div>
 
         {/* TIMELINE DISPLAY (8 cols) */}
-        <div className="lg:col-span-8 bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-6 shadow-xl" id="schedule-timeline-container">
+        <div
+          className="lg:col-span-8 bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-6 shadow-xl"
+          id="schedule-timeline-container"
+        >
           {schedule.length === 0 ? (
             <div className="py-16 text-center space-y-4">
               <Calendar className="h-12 w-12 text-zinc-700 mx-auto animate-pulse" />
               <div>
-                <h3 className="text-zinc-400 font-medium">Timeline currently offline</h3>
+                <h3 className="text-zinc-400 font-medium">
+                  Timeline currently offline
+                </h3>
                 <p className="text-zinc-600 text-xs max-w-sm mx-auto mt-1">
-                  Click 'Optimize Day Architecture' to let Gemini allocate your hours and configure deep buffer margins.
+                  Click 'Optimize Day Architecture' to let Gemini allocate your
+                  hours and configure deep buffer margins.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="relative border-l-2 border-zinc-800 ml-4 pl-6 space-y-6" id="schedule-timeline">
+            <div
+              className="relative border-l-2 border-zinc-800 ml-4 pl-6 space-y-6"
+              id="schedule-timeline"
+            >
               {schedule.map((item, index) => (
-                <div key={index} className="relative group" id={`schedule-item-${index}`}>
+                <div
+                  key={index}
+                  className="relative group"
+                  id={`schedule-item-${index}`}
+                >
                   {/* Timeline Circle Marker */}
-                  <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border bg-zinc-950 flex items-center justify-center transition-colors group-hover:scale-110 ${
-                    item.type === "focus" ? "border-amber-500" :
-                    item.type === "break" ? "border-emerald-500" :
-                    item.type === "buffer" ? "border-red-500" : "border-cyan-500"
-                  }`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      item.type === "focus" ? "bg-amber-500" :
-                      item.type === "break" ? "bg-emerald-500" :
-                      item.type === "buffer" ? "bg-red-500" : "bg-cyan-500"
-                    }`} />
+                  <div
+                    className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border bg-zinc-950 flex items-center justify-center transition-colors group-hover:scale-110 ${
+                      item.type === "focus"
+                        ? "border-amber-500"
+                        : item.type === "break"
+                          ? "border-emerald-500"
+                          : item.type === "buffer"
+                            ? "border-red-500"
+                            : "border-cyan-500"
+                    }`}
+                  >
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        item.type === "focus"
+                          ? "bg-amber-500"
+                          : item.type === "break"
+                            ? "bg-emerald-500"
+                            : item.type === "buffer"
+                              ? "bg-red-500"
+                              : "bg-cyan-500"
+                      }`}
+                    />
                   </div>
 
                   {/* Schedule Card */}
@@ -264,11 +317,15 @@ export default function SchedulePlanner({
                           <Clock className="h-3 w-3 text-zinc-500" />
                           {item.time}
                         </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 border rounded uppercase tracking-wider font-mono ${getTypeBadgeStyles(item.type)}`}>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 border rounded uppercase tracking-wider font-mono ${getTypeBadgeStyles(item.type)}`}
+                        >
                           {item.type}
                         </span>
                       </div>
-                      <span className="text-zinc-500 text-xs font-medium">{item.durationMinutes} mins</span>
+                      <span className="text-zinc-500 text-xs font-medium">
+                        {item.durationMinutes} mins
+                      </span>
                     </div>
 
                     <h4 className="text-sm font-semibold text-white mt-3 flex items-center gap-2">
