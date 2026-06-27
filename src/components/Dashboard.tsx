@@ -43,6 +43,7 @@ interface DashboardProps {
   tasks: Task[];
   habits: Habit[];
   onTasksChange: (tasks: Task[]) => void;
+  onHabitsChange: (habits: Habit[]) => void;
   onPrioritizeAll: () => Promise<void>;
   isLoadingPriorities: boolean;
   onViewPlan: (taskId: string) => void;
@@ -58,6 +59,7 @@ export default function Dashboard({
   tasks,
   habits,
   onTasksChange,
+  onHabitsChange,
   onPrioritizeAll,
   isLoadingPriorities,
   onViewPlan,
@@ -72,6 +74,23 @@ export default function Dashboard({
   const [genieSpeech, setGenieSpeech] = useState<string>(
     "Greetings, operator. I have completed a cognitive sweep of your agenda. Ready to isolate distractions and secure your deadlines?",
   );
+
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+
+  const handleResetStreak = () => {
+    if (!isConfirmingReset) {
+      setIsConfirmingReset(true);
+      return;
+    }
+    // reset streak and completed dates of all habits
+    const updatedHabits = habits.map((h) => ({
+      ...h,
+      streak: 0,
+      completedDates: [],
+    }));
+    onHabitsChange(updatedHabits);
+    setIsConfirmingReset(false);
+  };
 
   // Search & Filter state values
   const [searchQuery, setSearchQuery] = useState("");
@@ -845,21 +864,55 @@ export default function Dashboard({
             </div>
 
             {/* Streak Counter */}
-            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-2xl flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center shrink-0">
-                <Flame className="h-6 w-6 text-orange-500 animate-pulse" />
+            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-2xl flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center shrink-0">
+                  <Flame className="h-6 w-6 text-orange-500 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs text-zinc-400 font-bold uppercase tracking-wider font-mono">
+                    Active Survival
+                  </h4>
+                  <p className="text-lg font-bold text-white mt-0.5">
+                    {habits.length > 0
+                      ? Math.max(...habits.map((h) => h.streak), 0)
+                      : 0}{" "}
+                    Day Streak
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs text-zinc-400 font-bold uppercase tracking-wider font-mono">
-                  Active Survival
-                </h4>
-                <p className="text-lg font-bold text-white mt-0.5">
-                  {habits.length > 0
-                    ? Math.max(...habits.map((h) => h.streak), 0)
-                    : 0}{" "}
-                  Day Streak
-                </p>
-              </div>
+
+              {habits.length > 0 && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {isConfirmingReset ? (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={handleResetStreak}
+                        className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-[10px] font-bold font-mono rounded-md cursor-pointer transition-colors"
+                        id="confirm-reset-streak-btn"
+                      >
+                        Reset?
+                      </button>
+                      <button
+                        onClick={() => setIsConfirmingReset(false)}
+                        className="p-1 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-300 rounded cursor-pointer transition-colors text-[10px] font-bold font-mono"
+                        id="cancel-reset-streak-btn"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleResetStreak}
+                      className="p-2 hover:bg-zinc-900 border border-zinc-900 hover:border-zinc-800 rounded-lg text-zinc-500 hover:text-red-400 transition-all cursor-pointer"
+                      title="Reset streaks to 0"
+                      id="reset-streak-btn"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* OAuth Connection Status */}
@@ -1146,10 +1199,10 @@ export default function Dashboard({
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ layout: { type: "spring", stiffness: 300, damping: 30 }, duration: 0.2 }}
                   draggable={!task.completed}
-                  onDragStart={(e) => handleDragStart(e, task.id)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => handleDragOver(e, task.id)}
-                  onDrop={(e) => handleDrop(e, task.id)}
+                  onDragStart={(e) => handleDragStart(e as any, task.id)}
+                  onDragEnd={handleDragEnd as any}
+                  onDragOver={(e) => handleDragOver(e as any, task.id)}
+                  onDrop={(e) => handleDrop(e as any, task.id)}
                   className={`border rounded-2xl p-5 transition-all duration-300 relative group flex flex-col justify-between ${
                     task.completed
                       ? "bg-zinc-950/40 border-emerald-500/20 opacity-75 shadow-sm"

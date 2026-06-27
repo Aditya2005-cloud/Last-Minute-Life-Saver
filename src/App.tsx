@@ -10,6 +10,9 @@ import PanicButton from "./components/PanicButton";
 import BufferShield from "./components/BufferShield";
 import AppLockScreen from "./components/AppLockScreen";
 
+const LandingPage3D = React.lazy(() => import("./components/LandingPage3D"));
+
+
 import { 
   auth, 
   googleSignIn, 
@@ -158,6 +161,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "add_task" | "agent_plan" | "calendar_sync" | "insights" | "habits" | "buffer_shield">("dashboard");
 
   // Authentication State
+  const [showLanding, setShowLanding] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [offlineMode, setOfflineMode] = useState<boolean>(() => {
@@ -251,7 +255,11 @@ export default function App() {
 
   const [habits, setHabits] = useState<Habit[]>(() => {
     const saved = localStorage.getItem("crisis_helper_habits");
-    return saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    const loaded: Habit[] = saved ? JSON.parse(saved) : DEFAULT_HABITS;
+    return loaded.map((h) => ({
+      ...h,
+      streak: h.completedDates.length === 0 ? 0 : h.streak,
+    }));
   });
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>(() => {
@@ -1033,6 +1041,19 @@ export default function App() {
     setActiveTab("agent_plan");
   };
 
+  if (!user && !offlineMode && showLanding) {
+    return (
+      <React.Suspense fallback={
+        <div className="min-h-screen bg-[#030303] text-white flex flex-col items-center justify-center font-mono text-[10px] tracking-widest gap-4">
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <span>BOOTING DEADLINEGENIE COGNITIVE CANVAS...</span>
+        </div>
+      }>
+        <LandingPage3D onGetStarted={() => setShowLanding(false)} />
+      </React.Suspense>
+    );
+  }
+
   if (!user && !offlineMode) {
     return (
       <LoginScreen 
@@ -1694,6 +1715,7 @@ export default function App() {
                   <Dashboard 
                     tasks={bufferedTasks}
                     habits={habits}
+                    onHabitsChange={handleHabitsChange}
                     onTasksChange={handleTasksChange}
                     onPrioritizeAll={handlePrioritizeAll}
                     isLoadingPriorities={isLoadingPriorities}

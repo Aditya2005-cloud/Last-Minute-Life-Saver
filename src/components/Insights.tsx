@@ -16,6 +16,9 @@ import {
   Download,
   History,
   RefreshCcw,
+  Search,
+  ArrowUpDown,
+  Archive,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -45,7 +48,7 @@ interface Badge {
   isActive: boolean;
 }
 
-export default function Insights({ tasks, habits }: InsightsProps) {
+export default function Insights({ tasks, habits, onRestoreTask }: InsightsProps) {
   const completedTasks = tasks.filter((t) => t.completed);
   const activeTasks = tasks.filter((t) => !t.completed);
   const totalTasks = tasks.length;
@@ -223,6 +226,62 @@ export default function Insights({ tasks, habits }: InsightsProps) {
   const [activeMetricTab, setActiveMetricTab] = useState<
     "rate" | "time" | "both"
   >("both");
+
+  // Archive States
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
+  const [archiveSelectedCategory, setArchiveSelectedCategory] = useState("all");
+  const [archiveSortBy, setArchiveSortBy] = useState<"completedAt" | "title" | "estimatedMinutes" | "importance">("completedAt");
+  const [archiveSortOrder, setArchiveSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Dynamic completed categories
+  const completedCategories = useMemo(() => {
+    const cats = new Set(completedTasks.map((t) => t.category).filter(Boolean));
+    return ["all", ...Array.from(cats)];
+  }, [completedTasks]);
+
+  // Filter and sort completed tasks
+  const filteredCompletedTasks = useMemo(() => {
+    let result = [...completedTasks];
+
+    // 1. Search Query Filter
+    if (archiveSearchQuery.trim() !== "") {
+      const q = archiveSearchQuery.toLowerCase().trim();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
+          (t.category && t.category.toLowerCase().includes(q)),
+      );
+    }
+
+    // 2. Category Filter
+    if (archiveSelectedCategory !== "all") {
+      result = result.filter((t) => t.category === archiveSelectedCategory);
+    }
+
+    // 3. Sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (archiveSortBy === "completedAt") {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        comparison = dateA - dateB;
+      } else if (archiveSortBy === "title") {
+        comparison = a.title.localeCompare(b.title);
+      } else if (archiveSortBy === "estimatedMinutes") {
+        comparison = a.estimatedMinutes - b.estimatedMinutes;
+      } else if (archiveSortBy === "importance") {
+        const importanceWeight = { high: 3, medium: 2, low: 1 };
+        const weightA = importanceWeight[a.importance] || 0;
+        const weightB = importanceWeight[b.importance] || 0;
+        comparison = weightA - weightB;
+      }
+
+      return archiveSortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [completedTasks, archiveSearchQuery, archiveSelectedCategory, archiveSortBy, archiveSortOrder]);
 
   const chartData = useMemo(() => {
     const data = [];
@@ -789,66 +848,192 @@ export default function Insights({ tasks, habits }: InsightsProps) {
         </div>
       </div>
 
-      {/* TASK HISTORY LOG */}
-      <div className="mt-12 pt-8 border-t border-zinc-900/60" id="task-history-section">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
-          <History className="h-5 w-5 text-amber-500" />
-          Completed Task History
-        </h3>
-        <p className="text-zinc-500 text-xs mb-6">
-          Review your successfully executed tasks.
-        </p>
+      {/* COMPLETED TASK ARCHIVE */}
+      <div 
+        className="mt-12 bg-zinc-950 border border-zinc-900 rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden" 
+        id="task-history-section"
+      >
+        <span className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/30 via-purple-500/30 to-transparent" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Archive className="h-5 w-5 text-amber-500" />
+              Completed Task Archive
+            </h3>
+            <p className="text-zinc-500 text-xs mt-1">
+              Durable archive of your successfully finished initiatives. Search, filter, and instantly restore tasks.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2.5 font-mono text-[10px] text-zinc-500 bg-zinc-900/40 p-2.5 rounded-xl border border-zinc-900 shrink-0">
+            <div>
+              <span className="block text-[9px] uppercase font-bold text-zinc-600 mb-0.5">
+                Archived Items
+              </span>
+              <span className="text-emerald-500 font-extrabold text-xs">
+                {completedTasks.length} total
+              </span>
+            </div>
+            {filteredCompletedTasks.length !== completedTasks.length && (
+              <div className="border-l border-zinc-800 pl-4">
+                <span className="block text-[9px] uppercase font-bold text-zinc-600 mb-0.5">
+                  Filtered
+                </span>
+                <span className="text-amber-500 font-extrabold text-xs">
+                  {filteredCompletedTasks.length} found
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
 
+        {/* SEARCH & FILTERS ROW */}
+        {completedTasks.length > 0 && (
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 p-4 bg-zinc-900/30 border border-zinc-900 rounded-2xl">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                <Search className="h-3.5 w-3.5" />
+              </span>
+              <input
+                type="text"
+                value={archiveSearchQuery}
+                onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                placeholder="Search archive..."
+                className="w-full bg-zinc-950 border border-zinc-850/60 focus:border-amber-500/50 text-white placeholder-zinc-500 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all font-semibold"
+              />
+            </div>
+
+            {/* Category Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono hidden md:inline">
+                Category:
+              </span>
+              <select
+                value={archiveSelectedCategory}
+                onChange={(e) => setArchiveSelectedCategory(e.target.value)}
+                className="bg-zinc-950 border border-zinc-850/60 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500/50 font-semibold cursor-pointer min-w-[120px]"
+              >
+                <option value="all">All Categories</option>
+                {completedCategories.filter(cat => cat !== "all").map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Selection */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono hidden md:inline">
+                Sort:
+              </span>
+              <select
+                value={archiveSortBy}
+                onChange={(e) => setArchiveSortBy(e.target.value as any)}
+                className="bg-zinc-950 border border-zinc-850/60 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500/50 font-semibold cursor-pointer"
+              >
+                <option value="completedAt">Completed Date</option>
+                <option value="title">Title</option>
+                <option value="estimatedMinutes">Estimated Time</option>
+                <option value="importance">Importance</option>
+              </select>
+
+              {/* Sort Order Toggle */}
+              <button
+                onClick={() => setArchiveSortOrder(archiveSortOrder === "asc" ? "desc" : "asc")}
+                className="p-2.5 bg-zinc-950 hover:bg-zinc-850 border border-zinc-850/60 hover:border-zinc-700 rounded-xl text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                title={archiveSortOrder === "asc" ? "Ascending Order" : "Descending Order"}
+              >
+                <ArrowUpDown className={`h-3.5 w-3.5 transition-transform duration-200 ${archiveSortOrder === "asc" ? "" : "transform rotate-180"}`} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ARCHIVED LIST STAGE */}
         {completedTasks.length === 0 ? (
-          <div className="py-8 text-center text-zinc-500 font-mono text-xs italic bg-zinc-900/30 rounded-xl border border-zinc-850/60">
-            No completed tasks found. Time to crush some deadlines.
+          <div className="py-12 text-center text-zinc-500 font-mono text-xs italic bg-zinc-900/20 rounded-2xl border border-zinc-900 border-dashed">
+            Your archive is currently empty. Complete some initiatives on your active agenda to populate this grid!
+          </div>
+        ) : filteredCompletedTasks.length === 0 ? (
+          <div className="py-12 text-center text-zinc-500 font-mono text-xs italic bg-zinc-900/20 rounded-2xl border border-zinc-900 border-dashed">
+            No completed tasks match your active filters. Try resetting search parameters.
           </div>
         ) : (
           <div className="space-y-3">
-            {[...completedTasks]
-              .sort((a, b) => {
-                const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
-                const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
-                return dateB - dateA;
-              })
-              .map((task) => {
-                const date = task.completedAt ? new Date(task.completedAt) : undefined;
-                const displayDate = date 
-                  ? `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
-                  : "Unknown time";
+            {filteredCompletedTasks.map((task) => {
+              const date = task.completedAt ? new Date(task.completedAt) : undefined;
+              const displayDate = date 
+                ? `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+                : "Unknown time";
 
-                return (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-850/60 rounded-xl hover:border-zinc-700 transition-colors"
-                  >
-                    <div>
-                      <div className="text-zinc-300 font-semibold line-through decoration-zinc-600">
+              const importanceColor = 
+                task.importance === "high" 
+                  ? "bg-red-500/15 border-red-500/30 text-red-400" 
+                  : task.importance === "medium"
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                  : "bg-blue-500/15 border-blue-500/30 text-blue-400";
+
+              return (
+                <div
+                  key={task.id}
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-950 border border-zinc-850/60 rounded-2xl hover:border-zinc-700 hover:bg-zinc-900/20 transition-all duration-250 gap-4"
+                >
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="w-5 h-5 rounded-full border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5 text-emerald-400 font-bold text-xs shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                      ✓
+                    </div>
+                    
+                    <div className="min-w-0 space-y-1">
+                      <div className="text-zinc-300 font-bold text-sm line-through decoration-zinc-600/80 group-hover:text-zinc-100 transition-colors">
                         {task.title}
                       </div>
-                      <div className="text-[10px] text-zinc-500 font-mono mt-1 flex items-center gap-2">
-                        <span>Completed: {displayDate}</span>
-                        {task.category && (
-                          <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[9px] uppercase">
-                            {task.category}
+                      
+                      {task.description && (
+                        <p className="text-zinc-500 text-xs truncate max-w-xl pr-2">
+                          {task.description}
+                        </p>
+                      )}
+
+                      <div className="text-[10px] text-zinc-500 font-mono flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">
+                        <span className="flex items-center gap-1">
+                          ⏱️ Completed {displayDate}
+                        </span>
+                        
+                        <div className="flex items-center gap-1.5">
+                          {task.category && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[9px] uppercase tracking-wider font-extrabold text-zinc-400">
+                              {task.category}
+                            </span>
+                          )}
+                          
+                          <span className={`px-1.5 py-0.5 rounded-md border text-[9px] uppercase tracking-wider font-extrabold ${importanceColor}`}>
+                            {task.importance}
                           </span>
-                        )}
+
+                          <span className="px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[9px] text-zinc-400">
+                            {task.actualMinutes ?? task.estimatedMinutes}m focused
+                          </span>
+                        </div>
                       </div>
                     </div>
-
-                    {onRestoreTask && (
-                      <button
-                        onClick={() => onRestoreTask(task.id)}
-                        className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-500 hover:text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-zinc-800 hover:border-amber-500/50 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                        title="Restore to Active Tasks"
-                      >
-                        <RefreshCcw className="h-3 w-3" />
-                        Restore
-                      </button>
-                    )}
                   </div>
-                );
-              })}
+
+                  {onRestoreTask && (
+                    <button
+                      onClick={() => onRestoreTask(task.id)}
+                      className="w-full sm:w-auto px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-amber-500 hover:text-amber-400 text-xs font-black uppercase tracking-wider rounded-xl border border-zinc-800 hover:border-amber-500/50 transition-all duration-150 flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-md group-hover:shadow-amber-500/5"
+                      title="Restore to Active Tasks"
+                    >
+                      <RefreshCcw className="h-3.5 w-3.5 stroke-[2.5px]" />
+                      Restore Task
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
