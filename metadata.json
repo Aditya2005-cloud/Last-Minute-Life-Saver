@@ -1,0 +1,10 @@
+{
+  "name": "Last-Minute Life Saver",
+  "description": "An AI-powered tactical productivity companion that proactively helps you plan, prioritize, and crush deadlines with high-focus interventions and smart scheduling.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

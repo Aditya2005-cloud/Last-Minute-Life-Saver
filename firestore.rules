@@ -1,0 +1,148 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net - Deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Globally Reusable Helpers (Zero-Trust)
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Schema-Specific Validation Helpers
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'dueDate', 'importance', 'estimatedMinutes', 'completed']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 250 &&
+             data.dueDate is string && data.dueDate.size() <= 64 &&
+             data.importance in ['high', 'medium', 'low'] &&
+             data.estimatedMinutes is int && data.estimatedMinutes >= 0 &&
+             data.completed is bool &&
+             (!data.keys().hasAny(['completedAt']) || data.completedAt is string) &&
+             (!data.keys().hasAny(['actualMinutes']) || data.actualMinutes is int) &&
+             (!data.keys().hasAny(['category']) || data.category is string) &&
+             (!data.keys().hasAny(['panicScore']) || data.panicScore is int) &&
+             (!data.keys().hasAny(['matrixQuadrant']) || data.matrixQuadrant in ['do_first', 'schedule', 'delegate', 'eliminate']) &&
+             (!data.keys().hasAny(['aiReasoning']) || data.aiReasoning is string);
+    }
+
+    function isValidHabit(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'frequency', 'completedDates', 'streak']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() <= 250 &&
+             data.frequency in ['daily', 'weekly'] &&
+             data.completedDates is list && data.completedDates.size() <= 1500 &&
+             data.streak is int && data.streak >= 0;
+    }
+
+    function isValidCalendarEvent(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'startTime', 'endTime', 'isExternal']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 250 &&
+             data.startTime is string && data.startTime.size() <= 64 &&
+             data.endTime is string && data.endTime.size() <= 64 &&
+             data.isExternal is bool &&
+             (!data.keys().hasAny(['taskId']) || data.taskId is string);
+    }
+
+    // 4. Secure Parent Users Collection & Nesting Matching
+    match /users/{userId} {
+      // Access is restricted to the owner only
+      allow read: if isOwner(userId);
+
+      // Secure Sub-collection for Tasks
+      match /tasks/{taskId} {
+        allow read, list: if isOwner(userId);
+        
+        allow create: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(taskId) && 
+                         isValidTask(incoming()) && 
+                         incoming().userId == userId;
+
+        allow update: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(taskId) && 
+                         isValidTask(incoming()) && 
+                         incoming().userId == userId && 
+                         incoming().id == existing().id &&
+                         incoming().userId == existing().userId;
+
+        allow delete: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(taskId);
+      }
+
+      // Secure Sub-collection for Habits
+      match /habits/{habitId} {
+        allow read, list: if isOwner(userId);
+        
+        allow create: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(habitId) && 
+                         isValidHabit(incoming()) && 
+                         incoming().userId == userId;
+
+        allow update: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(habitId) && 
+                         isValidHabit(incoming()) && 
+                         incoming().userId == userId && 
+                         incoming().id == existing().id &&
+                         incoming().userId == existing().userId;
+
+        allow delete: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(habitId);
+      }
+
+      // Secure Sub-collection for Schedule/CalendarEvents
+      match /schedule/{itemId} {
+        allow read, list: if isOwner(userId);
+        
+        allow create: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(itemId) && 
+                         isValidCalendarEvent(incoming()) && 
+                         incoming().userId == userId;
+
+        allow update: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(itemId) && 
+                         isValidCalendarEvent(incoming()) && 
+                         incoming().userId == userId && 
+                         incoming().id == existing().id &&
+                         incoming().userId == existing().userId;
+
+        allow delete: if isOwner(userId) && 
+                         isEmailVerified() && 
+                         isValidId(itemId);
+      }
+    }
+  }
+}

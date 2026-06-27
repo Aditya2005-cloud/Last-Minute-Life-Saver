@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "An AI-prioritized task with deadline, importance, panicScore, matrixQuadrant, and its subtasks breakdown.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique task identifier" },
+        "userId": { "type": "string", "description": "The UID of the user who owns this task" },
+        "title": { "type": "string", "description": "Title of the task" },
+        "description": { "type": "string", "description": "Detailed task description" },
+        "dueDate": { "type": "string", "format": "date", "description": "The ISO date when this task is due (YYYY-MM-DD)" },
+        "importance": { "type": "string", "enum": ["high", "medium", "low"], "description": "Importance level" },
+        "estimatedMinutes": { "type": "integer", "description": "Estimated time to complete task in minutes" },
+        "category": { "type": "string", "description": "Category of work" },
+        "completed": { "type": "boolean", "description": "Task completion state" },
+        "panicScore": { "type": "integer", "description": "Calculated urgency/panic score from 0 to 100" },
+        "matrixQuadrant": { "type": "string", "enum": ["do_first", "schedule", "delegate", "eliminate"], "description": "Eisenhower Matrix Classification" },
+        "aiReasoning": { "type": "string", "description": "Comforting, tactical advice written by the Genie" },
+        "breakdown": {
+          "type": "object",
+          "description": "The nested subtask timeline breakdown",
+          "properties": {
+            "estimatedMinutesTotal": { "type": "integer" },
+            "tacticalSteps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "durationMinutes": { "type": "integer" },
+                  "checklist": { "type": "array", "items": { "type": "string" } },
+                  "completedChecklist": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            },
+            "requiredResources": { "type": "array", "items": { "type": "string" } },
+            "immediateFirstStep": { "type": "string" },
+            "reasoningSteps": { "type": "array", "items": { "type": "string" }, "description": "Chain-of-thought steps showing agentic reasoning" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "dueDate", "importance", "estimatedMinutes", "completed"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Daily or weekly consistency habits that optimize mental load.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "weekly"] },
+        "completedDates": { "type": "array", "items": { "type": "string" }, "description": "List of completed dates (YYYY-MM-DD)" },
+        "streak": { "type": "integer" }
+      },
+      "required": ["id", "userId", "name", "frequency", "completedDates", "streak"]
+    },
+    "CalendarEvent": {
+      "title": "CalendarEvent",
+      "description": "Merged scheduled event representing task focus blocks or external calendar events.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "color": { "type": "string" },
+        "isExternal": { "type": "boolean", "description": "True if synced from Google Calendar" },
+        "taskId": { "type": "string", "description": "Associated task if this is a focus block" }
+      },
+      "required": ["id", "userId", "title", "startTime", "endTime", "isExternal"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Under-deadline task lists owned by the user."
+    },
+    "users/{userId}/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Frictionless habits managed by the user."
+    },
+    "users/{userId}/schedule/{itemId}": {
+      "schema": "CalendarEvent",
+      "description": "Calendar blocks representing Google Calendar events & AI-scheduled blocks."
+    }
+  }
+}
