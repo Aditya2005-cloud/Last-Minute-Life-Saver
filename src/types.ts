@@ -13,6 +13,7 @@ export interface Task {
   breakdown?: TaskBreakdown;
   orderIndex?: number;
   completedAt?: string; // ISO date string or YYYY-MM-DD
+  createdAt?: string;
   actualMinutes?: number; // Actual time spent on completion
 }
 

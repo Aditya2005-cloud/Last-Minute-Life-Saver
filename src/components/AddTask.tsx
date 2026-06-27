@@ -127,6 +127,17 @@ export default function AddTask({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      // Only submit if title exists, mimicking the native form submit behavior
+      if (title.trim()) {
+        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+        handleSubmit(fakeEvent);
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -146,6 +157,7 @@ export default function AddTask({
       category: finalCategory,
       completed: false,
       orderIndex: tasks.length,
+      createdAt: new Date().toISOString(),
     };
 
     onAddTask(newTask);
@@ -171,7 +183,7 @@ export default function AddTask({
         {/* Top styling strip */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/40 via-purple-500/40 to-transparent" />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-6">
           {/* TITLE INPUT with Microphone button */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
@@ -457,7 +469,7 @@ export default function AddTask({
               id="submit-new-task-btn"
             >
               <Plus className="h-4 w-4 stroke-[3px]" />
-              SECURE OBJECTIVE
+              SECURE OBJECTIVE <span className="opacity-60 text-[10px] ml-1 font-mono tracking-tighter">⌘+↵</span>
             </button>
           </div>
         </form>

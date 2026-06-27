@@ -166,11 +166,10 @@ export default function TaskPrioritizer({
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
             <ListTodo className="h-6 w-6 text-amber-400" />
-            Tactical Task Command
+            Task Hub
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
-            Add details, score with AI, and unpack high-focus subtask
-            blueprints.
+            Add details, score with AI, and unpack high-focus step-by-step plans.
           </p>
         </div>
 
@@ -708,7 +707,7 @@ function TaskMiniItem({
               id={`task-progress-container-${task.id}`}
             >
               <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-                <span>Tactical Progress</span>
+                <span>Plan Progress</span>
                 <span className="font-semibold text-amber-400">
                   {completedSteps}/{totalSteps} Steps ({progressPercent}%)
                 </span>
@@ -806,10 +805,10 @@ function TaskMiniItem({
                     {task.breakdown.immediateFirstStep}
                   </div>
 
-                  {/* Tactical Micro-Milestones */}
+                  {/* Plan Steps */}
                   <div className="space-y-3">
                     <span className="text-[10px] text-zinc-500 font-mono tracking-wide uppercase block">
-                      Sustained Execution Stages:
+                      Execution Stages:
                     </span>
                     {task.breakdown.tacticalSteps.map((step, stepIdx) => (
                       <div

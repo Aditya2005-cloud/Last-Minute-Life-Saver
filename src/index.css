@@ -110,7 +110,9 @@ button:active:not(:disabled),
    Scoping everything cleanly to body.light for editorial vibes
    ========================================================================== */
 
-body.light {
+body.light,
+body.light #main-app-container,
+body.light main {
   background-color: #fafafa !important;
   color: #111111 !important;
 }
@@ -121,19 +123,9 @@ body.light .grid-dots {
 
 body.light .bg-black,
 body.light .bg-zinc-950,
-body.light .bg-zinc-900,
-body.light .bg-zinc-900\/40,
-body.light .bg-zinc-950\/40,
-body.light .bg-zinc-950\/80,
-body.light .bg-zinc-900\/80,
-body.light .bg-zinc-950\/95,
-body.light .bg-zinc-950\/98,
-body.light .bg-black\/98,
-body.light .bg-zinc-900\/70,
-body.light .bg-zinc-950\/50,
-body.light .bg-zinc-900\/50,
-body.light .bg-zinc-950\/60,
-body.light .bg-zinc-900\/60 {
+body.light [class*="bg-zinc-8"],
+body.light [class*="bg-zinc-9"],
+body.light [class*="bg-black"] {
   background-color: #ffffff !important;
   border-color: #e5e5e5 !important;
   color: #111111 !important;

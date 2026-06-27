@@ -142,14 +142,14 @@ const DEFAULT_HABITS: Habit[] = [
     name: "Mute slack & social tabs (Focus Block)",
     frequency: "daily",
     completedDates: [],
-    streak: 2
+    streak: 0
   },
   {
     id: "habit-2",
     name: "Clean Desk & Drink 500ml Water",
     frequency: "daily",
     completedDates: [],
-    streak: 5
+    streak: 0
   }
 ];
 
@@ -1341,7 +1341,7 @@ export default function App() {
                             if (!hasBreakdown || !nextDeadlineTask.breakdown!.tacticalSteps || nextDeadlineTask.breakdown!.tacticalSteps.length === 0) {
                               return (
                                 <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-4 text-center text-[10px] text-zinc-500 italic">
-                                  No tactical breakdown compiled. View tactical plan to formulate sub-tasks.
+                                  No plan generated yet. Go to AI Game Plan to get started.
                                 </div>
                               );
                             }
@@ -1350,7 +1350,7 @@ export default function App() {
                             return (
                               <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-3.5 space-y-3.5 text-left">
                                 <div className="flex items-center justify-between text-[10px]">
-                                  <span className="font-bold text-zinc-400 uppercase tracking-wider font-mono text-left">Tactical Phase Progress</span>
+                                  <span className="font-bold text-zinc-400 uppercase tracking-wider font-mono text-left">Phase Progress</span>
                                   <span className="font-mono text-zinc-500 font-bold uppercase text-[9px] tracking-tight">
                                     {steps.length} Phases Defined
                                   </span>
@@ -1556,7 +1556,7 @@ export default function App() {
             >
               <AlertTriangle className="h-4.5 w-4.5 text-amber-500 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <span className="font-semibold block mb-0.5">Tactical Advisory:</span>
+                <span className="font-semibold block mb-0.5">Advisory:</span>
                 <p>{apiWarning}</p>
               </div>
               <button 
@@ -1776,6 +1776,7 @@ export default function App() {
                   <Insights 
                     tasks={bufferedTasks}
                     habits={habits}
+                    onRestoreTask={(id) => handleToggleComplete(id, true)}
                   />
                 </motion.div>
               )}

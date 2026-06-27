@@ -358,7 +358,7 @@ export const FocusSession: React.FC<FocusSessionProps> = ({
               <div className="flex items-center justify-between border-b border-zinc-900/60 pb-3">
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                   <Timer className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Tactical Action Blueprint</span>
+                  <span>Action Plan</span>
                 </h3>
                 <span className="text-[10px] font-mono font-bold text-amber-500">
                   {completedSteps.length} /{" "}

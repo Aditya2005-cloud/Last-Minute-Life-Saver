@@ -14,6 +14,8 @@ import {
   Coffee,
   Sparkles,
   Download,
+  History,
+  RefreshCcw,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -30,6 +32,7 @@ import {
 interface InsightsProps {
   tasks: Task[];
   habits: Habit[];
+  onRestoreTask?: (taskId: string) => void;
 }
 
 interface Badge {
@@ -329,6 +332,35 @@ export default function Insights({ tasks, habits }: InsightsProps) {
     };
   }, [chartData]);
 
+  const downloadProductivityJSON = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      metrics: {
+        totalTasks,
+        completedCount,
+        completionRate,
+        totalEstimatedFocusMinutes,
+        activeEstimatedFocusMinutes,
+        averagePanicScore,
+        highestStreak,
+      },
+      tasks,
+      completionTrends: chartData,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `productivity_export_${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-8" id="insights-container">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -343,15 +375,27 @@ export default function Insights({ tasks, habits }: InsightsProps) {
           </p>
         </div>
 
-        <button
-          onClick={downloadProductivityCSV}
-          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black border border-amber-500/30 text-xs font-bold font-mono rounded-xl transition duration-150 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10 self-start sm:self-auto"
-          id="download-csv-btn"
-          title="Export completion history and productivity stats to CSV"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <button
+            onClick={downloadProductivityJSON}
+            className="px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-amber-500 border border-zinc-800 hover:border-amber-500/50 text-xs font-bold font-mono rounded-xl transition duration-150 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+            id="download-json-btn"
+            title="Export tasks and completion trends to JSON"
+          >
+            <Download className="h-4 w-4" />
+            Export JSON
+          </button>
+          
+          <button
+            onClick={downloadProductivityCSV}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black border border-amber-500/30 text-xs font-bold font-mono rounded-xl transition duration-150 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/10"
+            id="download-csv-btn"
+            title="Export completion history and productivity stats to CSV"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* METRIC CARD ROW */}
@@ -743,6 +787,70 @@ export default function Insights({ tasks, habits }: InsightsProps) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* TASK HISTORY LOG */}
+      <div className="mt-12 pt-8 border-t border-zinc-900/60" id="task-history-section">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+          <History className="h-5 w-5 text-amber-500" />
+          Completed Task History
+        </h3>
+        <p className="text-zinc-500 text-xs mb-6">
+          Review your successfully executed tasks.
+        </p>
+
+        {completedTasks.length === 0 ? (
+          <div className="py-8 text-center text-zinc-500 font-mono text-xs italic bg-zinc-900/30 rounded-xl border border-zinc-850/60">
+            No completed tasks found. Time to crush some deadlines.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[...completedTasks]
+              .sort((a, b) => {
+                const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+                const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+                return dateB - dateA;
+              })
+              .map((task) => {
+                const date = task.completedAt ? new Date(task.completedAt) : undefined;
+                const displayDate = date 
+                  ? `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+                  : "Unknown time";
+
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-850/60 rounded-xl hover:border-zinc-700 transition-colors"
+                  >
+                    <div>
+                      <div className="text-zinc-300 font-semibold line-through decoration-zinc-600">
+                        {task.title}
+                      </div>
+                      <div className="text-[10px] text-zinc-500 font-mono mt-1 flex items-center gap-2">
+                        <span>Completed: {displayDate}</span>
+                        {task.category && (
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[9px] uppercase">
+                            {task.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {onRestoreTask && (
+                      <button
+                        onClick={() => onRestoreTask(task.id)}
+                        className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-amber-500 hover:text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-zinc-800 hover:border-amber-500/50 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                        title="Restore to Active Tasks"
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        Restore
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        )}
       </div>
     </div>
   );

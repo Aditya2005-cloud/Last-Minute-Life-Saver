@@ -252,7 +252,7 @@ export default function PanicButton({
             />
             <div className="text-left">
               <span className="block text-xs font-semibold tracking-widest text-orange-200 uppercase font-mono">
-                CRUNCH PROTOCOL
+                URGENCY MODE
               </span>
               <span className="font-display font-extrabold text-base tracking-tight text-white">
                 IN LAST-MINUTE PANIC? ACTIVE NOW
@@ -296,10 +296,10 @@ export default function PanicButton({
                   <div className="text-center space-y-2">
                     <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold tracking-wider uppercase font-mono animate-pulse">
                       <Timer className="h-4 w-4" />
-                      Tactical Intercept HUD
+                      Emergency Planner
                     </span>
                     <h2 className="text-4xl font-extrabold tracking-tight text-white mt-1 font-display">
-                      Configure Decontamination Block
+                      Configure Focus Block
                     </h2>
                     <p className="text-zinc-400 text-sm max-w-md mx-auto">
                       Let Gemini analyze your current task timeline, calm your
@@ -311,7 +311,7 @@ export default function PanicButton({
                     {/* TASK SELECT */}
                     <div className="space-y-1.5">
                       <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
-                        Select Target Core Initiative
+                        Select Target Initiative
                       </label>
                       <select
                         value={selectedTaskId}
@@ -323,7 +323,7 @@ export default function PanicButton({
                           value="general"
                           className="bg-zinc-900 text-white"
                         >
-                          🔥 General Chaos Shield (Absolute Priority Block)
+                          🔥 General Focus Block (Absolute Priority)
                         </option>
                         {activeTasks.map((t) => (
                           <option
@@ -341,7 +341,7 @@ export default function PanicButton({
                     <div className="space-y-2.5 pt-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-zinc-400 uppercase tracking-widest font-mono">
-                          Panic Threshold Level
+                          Panic Level
                         </span>
                         <span className="font-mono font-extrabold text-red-400 text-sm bg-red-500/10 px-2.5 py-1 rounded border border-red-500/25 animate-pulse">
                           {panicLevel}% Overdrive
@@ -357,8 +357,8 @@ export default function PanicButton({
                         id="panic-meter-slider"
                       />
                       <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider font-mono">
-                        <span>Looming Stress</span>
-                        <span>Full Fight-or-Flight</span>
+                        <span>A Little Stressed</span>
+                        <span>Very Stressed</span>
                       </div>
                     </div>
                   </div>
@@ -369,7 +369,7 @@ export default function PanicButton({
                       className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
                       id="cancel-panic-btn"
                     >
-                      Stand Down
+                      Cancel
                     </button>
                     <button
                       onClick={handleLaunchProtocol}
@@ -380,12 +380,12 @@ export default function PanicButton({
                       {isLoadingProtocol ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Booting Cognitive Safehouses...
+                          Creating Plan...
                         </>
                       ) : (
                         <>
                           <Play className="h-4 w-4 fill-current text-white animate-pulse" />
-                          INJECT CRISIS MITIGATION
+                          START HELP MODE
                         </>
                       )}
                     </button>
@@ -562,7 +562,7 @@ export default function PanicButton({
                     {/* FOCUS CHEATSHEET DIRECTIVES */}
                     <div className="space-y-3">
                       <span className="text-[10px] text-zinc-400 font-bold font-mono tracking-widest uppercase block">
-                        Immediate Execution Protocols:
+                        Immediate Actions:
                       </span>
                       <div className="space-y-3">
                         {pepTalkData?.tacticalSprint.focusDirectives.map(
@@ -593,7 +593,7 @@ export default function PanicButton({
                         className="flex-1 px-5 py-3 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-zinc-800"
                         id="protocol-abort"
                       >
-                        Abort Protocol
+                        Cancel Urgency Mode
                       </button>
                       <button
                         onClick={handleCompleteSprint}
@@ -601,7 +601,7 @@ export default function PanicButton({
                         id="protocol-complete"
                       >
                         <CheckCircle className="h-4.5 w-4.5 text-black" />
-                        PROTOCOL COMPLETE
+                        FINISH
                       </button>
                     </div>
                   </div>

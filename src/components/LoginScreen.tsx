@@ -251,8 +251,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 DeadlineGenie AI
               </h2>
               <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
-                Unlock tactical deadline prevention, automated agenda mapping,
-                and smart calendar interception.
+                Unlock smart tools to organize your tasks, block out time, and beat your deadlines.
               </p>
             </div>
           </div>
@@ -302,11 +301,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <span
                 className={`font-semibold block mb-0.5 ${theme === "light" ? "text-purple-700" : "text-amber-400"}`}
               >
-                Genie Intelligence Protocol:
+                Key Features:
               </span>
-              Synchronize upcoming objectives with Google Workspace to enable
-              autonomous scheduling, habit balancing, and hands-free vocal
-              assistance.
+              Connect with Google Workspace for automatic scheduling, tracking habits, and AI coaching.
             </div>
           </div>
         </motion.div>

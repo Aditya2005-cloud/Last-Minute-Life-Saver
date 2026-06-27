@@ -150,11 +150,10 @@ export default function AgentPlan({
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
           <Cpu className="h-6 w-6 text-amber-500 animate-pulse" />
-          Autonomous Survival Blueprint
+          AI Game Plan
         </h2>
         <p className="text-zinc-400 text-sm mt-1">
-          Break open looming objectives, view agent reasoning steps, and check
-          off micro-checkpoints.
+          Break down big tasks, understand AI reasoning, and complete simple checklists.
         </p>
       </div>
 
@@ -195,12 +194,12 @@ export default function AgentPlan({
               {isBreakingDown[currentTask.id] ? (
                 <span className="flex items-center gap-1.5">
                   <span className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                  Unpacking Nodes...
+                  Planning...
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5">
                   <Zap className="h-3.5 w-3.5" />
-                  {hasBreakdown ? "Regenerate Blueprint" : "Generate Game Plan"}
+                  {hasBreakdown ? "Regenerate Plan" : "Generate Plan"}
                 </span>
               )}
             </button>
@@ -231,10 +230,10 @@ export default function AgentPlan({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">
-                    Agent Planning Trace
+                    AI Thinking Process
                   </h4>
                   <p className="text-[10px] text-zinc-500 font-mono">
-                    Transparent chain-of-thought node stream
+                    How the AI made this plan
                   </p>
                 </div>
               </div>
@@ -288,14 +287,13 @@ export default function AgentPlan({
                 <span className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
                 <h4 className="text-xs font-bold text-amber-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
                   <Play className="h-3.5 w-3.5 fill-current text-amber-500 animate-pulse" />
-                  Immediate Friction-Free Step
+                  First Easy Step
                 </h4>
                 <p className="text-zinc-200 text-sm font-bold mt-2 leading-relaxed">
                   "{currentTask.breakdown.immediateFirstStep}"
                 </p>
                 <p className="text-[10px] text-zinc-500 font-mono mt-1">
-                  Commit to this single action for 30 seconds to bypass
-                  cognitive paralysis.
+                  Do this single action for 30 seconds to get started easily.
                 </p>
               </div>
             )}
@@ -408,10 +406,9 @@ export default function AgentPlan({
               ) : (
                 <div className="py-16 text-center text-zinc-500 font-mono text-xs">
                   <ListTodo className="h-10 w-10 text-zinc-800 mx-auto mb-3" />
-                  <p>Survival blueprint not generated yet.</p>
+                  <p>No plan generated yet.</p>
                   <p className="text-[10px] text-zinc-600 mt-1">
-                    Initiate plan generation to build your step-by-step tactical
-                    sprint roadmap.
+                    Click Generate Game Plan to build your step-by-step guide.
                   </p>
                 </div>
               )}

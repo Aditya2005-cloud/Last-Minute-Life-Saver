@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Task, Habit } from "../types";
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
   Flame,
   Zap,
   Smile,
@@ -22,6 +31,9 @@ import {
   Brain,
   Trash2,
   Plus,
+  BarChart2,
+  History,
+  RefreshCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -56,16 +68,19 @@ export default function Dashboard({
   currentTime,
   onStartFocusTask,
 }: DashboardProps) {
+  const [dashboardView, setDashboardView] = useState<"agenda" | "analytics">("agenda");
   const [genieSpeech, setGenieSpeech] = useState<string>(
     "Greetings, operator. I have completed a cognitive sweep of your agenda. Ready to isolate distractions and secure your deadlines?",
   );
 
   // Search & Filter state values
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickAddTitle, setQuickAddTitle] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "active" | "completed" | "all"
   >("active");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState<"dueDate" | "importance" | "creation">("dueDate");
 
   // AI Audio Nudge States
   const [nudgeLoading, setNudgeLoading] = useState<Record<string, boolean>>({});
@@ -329,6 +344,27 @@ export default function Dashboard({
     }
   };
 
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickAddTitle.trim()) return;
+
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      title: quickAddTitle.trim(),
+      description: "",
+      dueDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+      importance: "medium",
+      estimatedMinutes: 45,
+      category: "General",
+      completed: false,
+      orderIndex: tasks.length,
+      createdAt: new Date().toISOString(),
+    };
+
+    onTasksChange([...tasks, newTask]);
+    setQuickAddTitle("");
+  };
+
   const handleToggleComplete = (
     taskId: string,
     isCurrentlyCompleted: boolean,
@@ -367,7 +403,12 @@ export default function Dashboard({
     // Call callback to toggle the task completed status
     const updated = tasks.map((t) => {
       if (t.id === taskId) {
-        return { ...t, completed: !t.completed };
+        const isNowCompleted = !t.completed;
+        return { 
+          ...t, 
+          completed: isNowCompleted,
+          completedAt: isNowCompleted ? new Date().toISOString() : undefined
+        };
       }
       return t;
     });
@@ -376,10 +417,39 @@ export default function Dashboard({
 
   const activeTasks = tasks.filter((t) => !t.completed);
   const completedTasksCount = tasks.filter((t) => t.completed).length;
+  const completedTodayCount = tasks.filter((t) => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === currentTime.toDateString()).length;
+  const dailyGoal = 5;
   const completionPercentage =
     tasks.length > 0
       ? Math.round((completedTasksCount / tasks.length) * 100)
       : 0;
+
+  const analyticsData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(currentTime);
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split("T")[0];
+    });
+
+    return last7Days.map((dateString) => {
+      const count = tasks.filter((t) => 
+        t.completed && 
+        t.completedAt && 
+        t.completedAt.startsWith(dateString)
+      ).length;
+
+      const d = new Date(dateString);
+      // adjust for local timezone offset when parsing YYYY-MM-DD
+      d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+
+      return {
+        date: dateString,
+        day: dayName,
+        completed: count,
+      };
+    });
+  }, [tasks, currentTime]);
 
   // Compute unique categories present in the tasks
   const uniqueCategories = useMemo(() => {
@@ -412,19 +482,46 @@ export default function Dashboard({
       return true;
     });
 
-    // Sort by orderIndex, and fall back to dueDate and ID comparison
+    // Sort based on the selected sortBy option
     return [...filtered].sort((a, b) => {
+      // Always honor user drag-and-drop order if it's explicitly set and we're not forcefully sorting by another dimension
+      // But wait, the user asked for a dropdown to sort by Due Date, Importance Score, or Creation Date.
+      // So we should sort primarily by the selected option.
+      
+      if (sortBy === "importance") {
+        const impMap = { high: 3, medium: 2, low: 1 };
+        const aImp = impMap[a.importance] ?? 0;
+        const bImp = impMap[b.importance] ?? 0;
+        
+        // Also factor in panic score if available
+        const aScore = (a.panicScore ?? 0) + (aImp * 100);
+        const bScore = (b.panicScore ?? 0) + (bImp * 100);
+        
+        if (aScore !== bScore) return bScore - aScore; // Descending
+      } else if (sortBy === "creation") {
+        // Assume ID has creation order or we use createdAt if available
+        // Tasks don't have createdAt, but they have id which is typically a timestamp or UUID.
+        // Let's use id.localeCompare assuming it's temporally sortable, or if we don't have createdAt.
+        // Wait, do tasks have createdAt? Let's check types.ts
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (aDate !== bDate) return bDate - aDate; // Descending
+      } else {
+        // Default: due date
+        // Note: We'll put tasks without due date at the end
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (aDate !== bDate) return aDate - bDate; // Ascending
+      }
+
+      // Fallbacks
       const aOrder = a.orderIndex ?? 999999;
       const bOrder = b.orderIndex ?? 999999;
       if (aOrder !== bOrder) return aOrder - bOrder;
-
-      const aDate = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-      const bDate = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-      if (aDate !== bDate) return aDate - bDate;
-
+      
       return a.id.localeCompare(b.id);
     });
-  }, [tasks, statusFilter, selectedCategory, searchQuery]);
+  }, [tasks, statusFilter, selectedCategory, searchQuery, sortBy]);
 
   // Drag and Drop Event Handlers
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -573,13 +670,13 @@ export default function Dashboard({
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 15, ease: "linear", repeat: Infinity }}
-              className="absolute inset-0 border border-dashed border-zinc-500/20 rounded-full bg-[#e4e4e4] opacity-20"
+              className="absolute inset-0 border border-zinc-200/20 rounded-full bg-[#e4e4e4] opacity-10"
             />
             {/* Middle ring */}
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 8, ease: "linear", repeat: Infinity }}
-              className="absolute inset-2 border border-dotted border-zinc-600/30 rounded-full bg-[#828282] opacity-30"
+              className="absolute inset-2 border border-zinc-300/30 rounded-full bg-[#828282] opacity-15"
             />
 
             {/* Floating Genie Sphere Core */}
@@ -595,14 +692,14 @@ export default function Dashboard({
                 ],
               }}
               transition={{ duration: 5, ease: "easeInOut", repeat: Infinity }}
-              className="w-24 h-24 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center relative cursor-pointer group active:scale-95 transition-transform"
+              className="w-24 h-24 rounded-full bg-gradient-to-tr from-zinc-800 to-zinc-950 border border-zinc-700 flex items-center justify-center relative cursor-pointer group active:scale-95 transition-transform shadow-lg"
               onClick={() => {
                 const phrases = [
-                  "Distractions isolated. Focus vectors established.",
-                  "If you fail to plan, you plan to surrender to the deadline. Let's execute.",
-                  "Do not refresh your social feed. Your survival blueprint is locked.",
-                  "One focused session beats ten scattered hours. Breathe and initiate sprint.",
-                  "I am actively tracking constraints.",
+                  "Ready to focus.",
+                  "Let's plan your work so you can finish on time.",
+                  "Don't check social media. Stick to your plan.",
+                  "One good focus session is better than hours of distraction. Take a deep breath and start.",
+                  "I am actively tracking your schedule constraints.",
                 ];
                 setGenieSpeech(
                   phrases[Math.floor(Math.random() * phrases.length)],
@@ -648,7 +745,7 @@ export default function Dashboard({
 
           {/* Core high-end KPI ring and metrics */}
           <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             id="dashboard-stats-row"
           >
             {/* Productivity Score Ring */}
@@ -705,6 +802,48 @@ export default function Dashboard({
               </div>
             </div>
 
+            {/* Daily Goal Card */}
+            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-2xl flex items-center gap-4">
+              <div className="relative w-16 h-16 shrink-0">
+                {/* SVG Ring */}
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke="rgba(63, 63, 70, 0.4)"
+                    strokeWidth="4"
+                    fill="transparent"
+                  />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke="#10b981"
+                    strokeWidth="5"
+                    fill="transparent"
+                    strokeDasharray="175.9"
+                    strokeDashoffset={
+                      175.9 - (175.9 * Math.min(completedTodayCount / dailyGoal, 1))
+                    }
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-emerald-500" />
+                </div>
+              </div>
+              <div>
+                <h4 className="text-xs text-zinc-400 font-bold uppercase tracking-wider font-mono">
+                  Daily Goal
+                </h4>
+                <p className="text-lg font-bold text-white mt-0.5">
+                  {completedTodayCount}/{dailyGoal} Today
+                </p>
+              </div>
+            </div>
+
             {/* Streak Counter */}
             <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-2xl flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center shrink-0">
@@ -753,9 +892,27 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* PRIORITIZED AGENDA CORRIDOR */}
-      <div className="space-y-4" id="priority-corridor">
-        <div className="flex items-center justify-between">
+      {/* DASHBOARD VIEW TOGGLE */}
+      <div className="flex border-b border-zinc-900 gap-6 mt-8 mb-4">
+        <button
+          onClick={() => setDashboardView("agenda")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${dashboardView === "agenda" ? "border-amber-500 text-amber-500" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+        >
+          <Target className="h-4 w-4" />
+          Active Agenda
+        </button>
+        <button
+          onClick={() => setDashboardView("analytics")}
+          className={`pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${dashboardView === "analytics" ? "border-amber-500 text-amber-500" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+        >
+          <BarChart2 className="h-4 w-4" />
+          Task Analytics
+        </button>
+      </div>
+
+      {dashboardView === "agenda" && (
+        <div className="space-y-4" id="priority-corridor">
+          <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Target className="h-5 w-5 text-amber-500" />
@@ -864,6 +1021,23 @@ export default function Dashboard({
               </div>
             </div>
 
+            {/* Sort By Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "dueDate" | "importance" | "creation")}
+                className="bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 text-white rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
+                id="sort-filter-select"
+              >
+                <option value="dueDate">Due Date</option>
+                <option value="importance">Importance</option>
+                <option value="creation">Creation</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
+                <SlidersHorizontal className="h-3 w-3" />
+              </div>
+            </div>
+
             {/* Reset Filters Trigger */}
             {(searchQuery ||
               statusFilter !== "active" ||
@@ -882,6 +1056,26 @@ export default function Dashboard({
             )}
           </div>
         </div>
+
+        {/* Quick Add Bar */}
+        <form onSubmit={handleQuickAdd} className="flex items-center gap-2 mb-2">
+          <input
+            type="text"
+            value={quickAddTitle}
+            onChange={(e) => setQuickAddTitle(e.target.value)}
+            placeholder="Quick add task... (Press Enter to save)"
+            className="flex-1 bg-zinc-950/90 border border-zinc-850/60 focus:border-amber-500/50 hover:border-zinc-700/80 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all font-semibold placeholder-zinc-500 shadow-xl"
+            id="quick-add-input"
+          />
+          <button
+            type="submit"
+            disabled={!quickAddTitle.trim()}
+            className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed text-amber-500 hover:text-amber-400 font-bold font-sans text-xs uppercase tracking-wider rounded-xl border border-zinc-800 hover:border-amber-500/50 shadow-lg transition-all cursor-pointer flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add</span>
+          </button>
+        </form>
 
         {tasks.length === 0 ? (
           <div className="bg-zinc-950 border border-dashed border-zinc-900 py-12 rounded-2xl text-center">
@@ -915,12 +1109,14 @@ export default function Dashboard({
             </button>
           </div>
         ) : (
-          <div
+          <motion.div
+            layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             id="prioritized-cards-grid"
           >
-            {filteredTasks.map((task) => {
-              const panicMeta = getPanicLevelBadge(task.panicScore || 20);
+            <AnimatePresence mode="popLayout">
+              {filteredTasks.map((task) => {
+                const panicMeta = getPanicLevelBadge(task.panicScore || 20);
 
               // Calculate checklist progress bar values
               const hasBreakdown = !!task.breakdown;
@@ -947,8 +1143,8 @@ export default function Dashboard({
                   layout
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ layout: { type: "spring", stiffness: 300, damping: 30 }, duration: 0.2 }}
                   draggable={!task.completed}
                   onDragStart={(e) => handleDragStart(e, task.id)}
                   onDragEnd={handleDragEnd}
@@ -1177,9 +1373,61 @@ export default function Dashboard({
                 </motion.div>
               );
             })}
-          </div>
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
+      )}
+
+      {dashboardView === "analytics" && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-zinc-950/80 border border-zinc-850/60 rounded-2xl p-6 shadow-2xl mt-4"
+        >
+          <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+            <BarChart2 className="h-5 w-5 text-amber-500" />
+            7-Day Task Completion
+          </h3>
+          <p className="text-zinc-500 text-xs mb-8">
+            Review your progress over the last week.
+          </p>
+          
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={analyticsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis 
+                  dataKey="day" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: "#a1a1aa", fontSize: 12, fontWeight: 500 }} 
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: "#a1a1aa", fontSize: 12, fontWeight: 500 }}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  cursor={{ fill: "#27272a", opacity: 0.4 }}
+                  contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a", borderRadius: "8px", color: "#fff", fontWeight: "bold" }}
+                  itemStyle={{ color: "#fbbf24", fontWeight: "bold" }}
+                  labelStyle={{ color: "#a1a1aa", marginBottom: "4px", fontSize: "12px", textTransform: "uppercase" }}
+                />
+                <Bar 
+                  dataKey="completed" 
+                  fill="#fbbf24" 
+                  radius={[4, 4, 0, 0]}
+                  name="Tasks Completed"
+                  barSize={40}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* FLOATING ACTION BUTTON FOR BRAIN-DUMP */}
       <div className="fixed bottom-6 right-6 z-50">
