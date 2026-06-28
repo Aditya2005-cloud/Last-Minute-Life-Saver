@@ -63,7 +63,10 @@ import {
   X,
   Sun,
   Moon,
-  Globe
+  Globe,
+  SlidersHorizontal,
+  Search,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -173,6 +176,12 @@ export default function App() {
   // Navigation Tabs: 'dashboard' | 'add_task' | 'agent_plan' | 'calendar_sync' | 'insights' | 'habits' | 'buffer_shield'
   const [activeTab, setActiveTab] = useState<"dashboard" | "add_task" | "agent_plan" | "calendar_sync" | "insights" | "habits" | "buffer_shield">("dashboard");
 
+  // Selected category for the global filtering dropdown
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Selected search query for the global search input
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   // Authentication State
   const [showLanding, setShowLanding] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
@@ -235,6 +244,56 @@ export default function App() {
       }
     });
   }, [tasks, bufferOffsetHours]);
+
+  // Compute unique categories present in the tasks for the navigation filter dropdown
+  const uniqueCategories = useMemo(() => {
+    const cats = tasks
+      .map((t) => t.category)
+      .filter((cat): cat is string => !!cat);
+    // Combine dynamic ones with standard suggestions
+    const defaultCats = ["Study", "Work", "General"];
+    const combined = Array.from(new Set([...cats, ...defaultCats]));
+    return combined;
+  }, [tasks]);
+
+  // Compute incomplete high-priority task count
+  const incompleteHighPriorityCount = useMemo(() => {
+    return tasks.filter((t) => !t.completed && t.importance === "high").length;
+  }, [tasks]);
+
+  // Compute filtered tasks currently visible/selected for exporting
+  const filteredTasksForExport = useMemo(() => {
+    return bufferedTasks.filter((task) => {
+      // 1. Category Filter
+      if (selectedCategory !== "all" && task.category !== selectedCategory)
+        return false;
+
+      // 2. Search Query (matches title, description, or category)
+      if (searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase().trim();
+        const titleMatch = task.title.toLowerCase().includes(query);
+        const categoryMatch = task.category?.toLowerCase().includes(query);
+        const descMatch = task.description?.toLowerCase().includes(query);
+        if (!titleMatch && !categoryMatch && !descMatch) return false;
+      }
+
+      return true;
+    });
+  }, [bufferedTasks, selectedCategory, searchQuery]);
+
+  // Export tasks handler
+  const handleExportTasks = () => {
+    const jsonString = JSON.stringify(filteredTasksForExport, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.href = url;
+    downloadAnchor.download = `deadline-genie-tasks-${selectedCategory === "all" ? "all" : selectedCategory.toLowerCase().replace(/[^a-z0-9]/gi, "_")}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+    URL.revokeObjectURL(url);
+  };
 
   // Application Lock (PIN Security) State
   const [pinCode, setPinCode] = useState<string>(() => {
@@ -1038,6 +1097,16 @@ export default function App() {
   // Translation Helper
   const t = translations[language];
 
+  // Localized Export label
+  const exportLabel = {
+    en: "Export Tasks",
+    es: "Exportar Tareas",
+    fr: "Exporter les Tâches",
+    de: "Aufgaben Exportieren",
+    ja: "タスクのエクスポート",
+    zh: "导出任务"
+  }[language] || "Export Tasks";
+
   // Compute total panic states for warning banner
   const activeUnprioritized = tasks.filter(t => !t.completed && t.panicScore === undefined);
   const maxPanicScore = tasks.reduce((max, t) => !t.completed && t.panicScore && t.panicScore > max ? t.panicScore : max, 0);
@@ -1656,85 +1725,167 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" id="primary-app-layout">
         <div className="space-y-8">
           
-          {/* NAVIGATION BAR - Sleek Stitch theme styling */}
-          <div className="flex border-b border-zinc-900 overflow-x-auto scrollbar-none" id="primary-app-navigation">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "dashboard" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              {t.tabDashboard}
-            </button>
-            <button
-              onClick={() => setActiveTab("add_task")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "add_task" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <PlusCircle className="h-4 w-4" />
-              {t.tabAddTask}
-            </button>
-            <button
-              onClick={() => setActiveTab("agent_plan")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "agent_plan" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Cpu className="h-4 w-4" />
-              {t.tabAgentPlan}
-            </button>
-            <button
-              onClick={() => setActiveTab("calendar_sync")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "calendar_sync" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              {t.tabCalendarSync}
-            </button>
-            <button
-              onClick={() => setActiveTab("insights")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "insights" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Award className="h-4 w-4" />
-              {t.tabInsights}
-            </button>
-            <button
-              onClick={() => setActiveTab("habits")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "habits" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Heart className="h-4 w-4" />
-              {t.tabHabits}
-            </button>
-            <button
-              onClick={() => setActiveTab("buffer_shield")}
-              className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                activeTab === "buffer_shield" 
-                  ? "border-amber-500 text-amber-400" 
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Shield className="h-4 w-4" />
-              {t.tabBufferShield}
-            </button>
+          {/* NAVIGATION BAR - Sleek Stitch theme styling with Category Filter */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-900 gap-4 pb-2 md:pb-0" id="primary-app-navigation-wrapper">
+            <div className="flex border-b border-transparent md:border-none overflow-x-auto scrollbar-none" id="primary-app-navigation">
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "dashboard" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>{t.tabDashboard}</span>
+                {incompleteHighPriorityCount > 0 && (
+                  <span
+                    id="dashboard-high-priority-badge"
+                    className="ml-1 flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-black rounded-full bg-red-600 text-white dark:bg-amber-500 dark:text-zinc-950 shadow-sm border border-transparent select-none animate-pulse"
+                    title={`${incompleteHighPriorityCount} incomplete high-priority tasks`}
+                  >
+                    {incompleteHighPriorityCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("add_task")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "add_task" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <PlusCircle className="h-4 w-4" />
+                {t.tabAddTask}
+              </button>
+              <button
+                onClick={() => setActiveTab("agent_plan")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "agent_plan" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Cpu className="h-4 w-4" />
+                {t.tabAgentPlan}
+              </button>
+              <button
+                onClick={() => setActiveTab("calendar_sync")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "calendar_sync" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                {t.tabCalendarSync}
+              </button>
+              <button
+                onClick={() => setActiveTab("insights")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "insights" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Award className="h-4 w-4" />
+                {t.tabInsights}
+              </button>
+              <button
+                onClick={() => setActiveTab("habits")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "habits" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Heart className="h-4 w-4" />
+                {t.tabHabits}
+              </button>
+              <button
+                onClick={() => setActiveTab("buffer_shield")}
+                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                  activeTab === "buffer_shield" 
+                    ? "border-amber-500 text-amber-400" 
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                {t.tabBufferShield}
+              </button>
+            </div>
+
+            {/* Quick Filters and Search Group */}
+            <div className="flex flex-wrap items-center gap-3 px-4 md:px-0 pb-3 md:pb-0 shrink-0">
+              {/* Quick Search Input */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (activeTab !== "dashboard" && activeTab !== "insights") {
+                      setActiveTab("dashboard");
+                    }
+                  }}
+                  placeholder={t.searchTasksPlaceholder || "Search tasks..."}
+                  className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-650 rounded-lg pl-8 pr-7 py-1.5 text-xs font-bold font-sans focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all w-44 md:w-56"
+                  id="nav-task-search-input"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-white rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-850 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Category Filter Dropdown */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono hidden sm:inline">
+                  Category:
+                </span>
+                <div className="relative">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      // Automatically redirect to Dashboard to view the filtered list
+                      if (activeTab !== "dashboard" && activeTab !== "insights") {
+                        setActiveTab("dashboard");
+                      }
+                    }}
+                    className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
+                    id="nav-category-filter"
+                  >
+                    <option value="all">All Categories</option>
+                    {uniqueCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
+                    <SlidersHorizontal className="h-3 w-3" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Export Tasks Button */}
+              <button
+                onClick={handleExportTasks}
+                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-white dark:text-amber-400 border border-transparent dark:border-amber-500/30 rounded-lg px-3 py-1.5 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 shrink-0"
+                title="Export current filtered task list as JSON"
+                id="btn-export-tasks"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>{exportLabel}</span>
+              </button>
+            </div>
           </div>
 
           {/* VIEWS CONTROLLER */}
@@ -1763,6 +1914,10 @@ export default function App() {
                     currentTime={currentTime}
                     onStartFocusTask={setActiveFocusTask}
                     language={language}
+                    selectedCategory={selectedCategory}
+                    onSelectedCategoryChange={setSelectedCategory}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
                   />
                 </motion.div>
               )}

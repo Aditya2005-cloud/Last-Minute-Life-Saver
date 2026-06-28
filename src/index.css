@@ -258,7 +258,50 @@ body.light header {
   backdrop-filter: blur(8px);
 }
 
-/* Tabs */
+/* Tabs / Primary Navigation Tactile Enhancements */
+#primary-app-navigation button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateY(0);
+  position: relative !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Center-outward expanding underline effect */
+#primary-app-navigation button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: #f59e0b !important; /* Amber-500 for dark mode */
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateX(-50%) !important;
+}
+
+#primary-app-navigation button:hover::after,
+#primary-app-navigation button.border-amber-500::after {
+  width: 100% !important;
+}
+
+#primary-app-navigation button:hover {
+  transform: translateY(-2px);
+  background-color: rgba(245, 158, 11, 0.05) !important;
+  color: #f59e0b !important;
+}
+
+#primary-app-navigation button:active {
+  transform: translateY(1px) scale(0.96);
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  transition-duration: 0.05s !important;
+}
+
+/* Dark mode active background tint */
+#primary-app-navigation button.border-amber-500 {
+  background-color: rgba(245, 158, 11, 0.04) !important;
+  border-bottom-color: transparent !important;
+}
+
 body.light #primary-app-navigation button {
   color: #737373 !important;
   font-weight: 500 !important;
@@ -267,11 +310,27 @@ body.light #primary-app-navigation button {
   font-size: 0.75rem !important;
   border-radius: 0 !important;
   border-bottom: 2px solid transparent !important;
+  border-bottom-color: transparent !important;
   padding-bottom: 0.5rem !important;
 }
-body.light #primary-app-navigation button.border-amber-500 {
-  border-bottom-color: #111111 !important;
+
+body.light #primary-app-navigation button::after {
+  background-color: #111111 !important; /* Black/Dark for light mode */
+}
+
+body.light #primary-app-navigation button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
   color: #111111 !important;
+}
+
+body.light #primary-app-navigation button:active {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light #primary-app-navigation button.border-amber-500 {
+  border-bottom-color: transparent !important;
+  color: #111111 !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
 }
 
 /* Adjust pill/badges */
@@ -313,3 +372,29 @@ body.light #dashboard-stats-row > div {
   border: 1px solid #e5e5e5 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
 }
+
+/* Navigation Search Bar Enhancements */
+#nav-task-search-input {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+#nav-task-search-input:hover {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+#nav-task-search-input:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+body.light #nav-task-search-input:hover {
+  border-color: #a3a3a3 !important;
+}
+
+body.light #nav-task-search-input:focus {
+  border-color: #111111 !important;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.1) !important;
+  background-color: #ffffff !important;
+}
+
