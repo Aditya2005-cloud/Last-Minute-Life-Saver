@@ -38,6 +38,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 import { FocusSession } from "./FocusSession";
+import { Language, translations } from "../translations";
 
 interface DashboardProps {
   tasks: Task[];
@@ -53,6 +54,7 @@ interface DashboardProps {
   accessToken: string | null;
   currentTime: Date;
   onStartFocusTask: (task: Task) => void;
+  language?: Language;
 }
 
 export default function Dashboard({
@@ -69,7 +71,9 @@ export default function Dashboard({
   accessToken,
   currentTime,
   onStartFocusTask,
+  language = "en",
 }: DashboardProps) {
+  const t = translations[language];
   const [dashboardView, setDashboardView] = useState<"agenda" | "analytics">("agenda");
   const [genieSpeech, setGenieSpeech] = useState<string>(
     "Greetings, operator. I have completed a cognitive sweep of your agenda. Ready to isolate distractions and secure your deadlines?",
@@ -1004,7 +1008,7 @@ export default function Dashboard({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by title, category, or description..."
+              placeholder={t.searchPlaceholder}
               className="w-full bg-zinc-900/60 border border-zinc-800 focus:border-amber-500/50 hover:border-zinc-700/80 text-white rounded-xl pl-10 pr-10 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all font-semibold font-sans placeholder-zinc-500"
               id="task-search-input"
             />
@@ -1030,7 +1034,7 @@ export default function Dashboard({
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
-                All
+                {t.statusAll}
               </button>
               <button
                 onClick={() => setStatusFilter("active")}
@@ -1040,7 +1044,7 @@ export default function Dashboard({
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
-                Active
+                {t.statusActive}
               </button>
               <button
                 onClick={() => setStatusFilter("completed")}
@@ -1050,7 +1054,7 @@ export default function Dashboard({
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
-                Completed
+                {t.statusCompleted}
               </button>
             </div>
 
@@ -1062,7 +1066,7 @@ export default function Dashboard({
                 className="bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 text-white rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
                 id="category-filter-select"
               >
-                <option value="all">All Categories</option>
+                <option value="all">{t.allCategories}</option>
                 {uniqueCategories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -1082,9 +1086,9 @@ export default function Dashboard({
                 className="bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 text-white rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
                 id="sort-filter-select"
               >
-                <option value="dueDate">Due Date</option>
-                <option value="importance">Importance</option>
-                <option value="creation">Creation</option>
+                <option value="dueDate">{t.dueDate}</option>
+                <option value="importance">{t.importance}</option>
+                <option value="creation">{t.creation}</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
                 <SlidersHorizontal className="h-3 w-3" />
@@ -1190,6 +1194,18 @@ export default function Dashboard({
                 task.importance === "high" ||
                 (task.panicScore && task.panicScore >= 70);
 
+              const score = task.panicScore || 0;
+              let panicBorderClass = "border-zinc-850 hover:border-amber-500/30";
+              if (!task.completed && dragOverTaskId !== task.id) {
+                if (score >= 80) {
+                  panicBorderClass = "border-red-500/25 hover:border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.05)]";
+                } else if (score >= 50) {
+                  panicBorderClass = "border-amber-500/25 hover:border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.05)]";
+                } else if (score > 0) {
+                  panicBorderClass = "border-emerald-500/20 hover:border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.04)]";
+                }
+              }
+
               return (
                 <motion.div
                   key={task.id}
@@ -1208,7 +1224,7 @@ export default function Dashboard({
                       ? "bg-zinc-950/40 border-emerald-500/20 opacity-75 shadow-sm"
                       : dragOverTaskId === task.id
                         ? "border-amber-500 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.25)] scale-[1.02]"
-                        : "bg-zinc-900/40 border-zinc-850 hover:bg-zinc-900/70 hover:border-amber-500/30"
+                        : `bg-zinc-900/40 hover:bg-zinc-900/70 ${panicBorderClass}`
                   } ${draggedTaskId === task.id ? "opacity-30" : ""}`}
                   id={`task-card-${task.id}`}
                 >
@@ -1237,15 +1253,28 @@ export default function Dashboard({
 
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h4
-                          className={`text-sm font-bold group-hover:text-amber-400 transition-colors line-clamp-1 ${
-                            task.completed
-                              ? "line-through text-zinc-500"
-                              : "text-white"
-                          }`}
-                        >
-                          {task.title}
-                        </h4>
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <h4
+                            className={`text-sm font-bold group-hover:text-amber-400 transition-colors line-clamp-1 ${
+                              task.completed
+                                ? "line-through text-zinc-500"
+                                : "text-white"
+                            }`}
+                          >
+                            {task.title}
+                          </h4>
+                          <span
+                            className={`text-[9px] font-mono font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 transition-all ${
+                              task.importance === "high"
+                                ? "bg-red-500/10 text-red-400 border-red-500/25 shadow-[0_0_8px_rgba(239,68,68,0.12)]"
+                                : task.importance === "medium"
+                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.12)]"
+                                  : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                            }`}
+                          >
+                            {task.importance}
+                          </span>
+                        </div>
                         {task.description && (
                           <p
                             className={`text-xs line-clamp-2 mt-1 leading-relaxed ${
@@ -1300,6 +1329,56 @@ export default function Dashboard({
                         />
                       </div>
                     </div>
+
+                    {/* Tactical Subtasks Progress Indicator */}
+                    {hasBreakdown && task.breakdown!.tacticalSteps && task.breakdown!.tacticalSteps.length > 0 && (
+                      <div className="space-y-1.5 pt-1 border-t border-zinc-950/40 mt-1">
+                        <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 font-bold uppercase tracking-wider">
+                          <span>Tactical Subtasks</span>
+                          <span>
+                            {task.breakdown!.tacticalSteps.filter(
+                              (s) =>
+                                s.checklist.length > 0 &&
+                                (s.completedChecklist?.length || 0) === s.checklist.length
+                            ).length}
+                            /{task.breakdown!.tacticalSteps.length} Stages
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          {task.breakdown!.tacticalSteps.map((step, idx) => {
+                            const total = step.checklist.length;
+                            const completed = step.completedChecklist?.length || 0;
+                            const isDone = total > 0 && completed === total;
+                            const pct = total > 0 ? (completed / total) * 100 : 0;
+                            
+                            // Color-coding based on completion
+                            let stepBgColor = "bg-zinc-800";
+                            if (isDone) {
+                              stepBgColor = "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]";
+                            } else if (completed > 0) {
+                              stepBgColor = "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]";
+                            }
+
+                            return (
+                              <div
+                                key={idx}
+                                className="flex-1 h-1.5 rounded-full bg-zinc-950 border border-zinc-850/60 overflow-hidden relative group/step"
+                                title={`${step.title}: ${completed}/${total} tasks completed`}
+                              >
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${stepBgColor}`}
+                                  style={{ width: total > 0 ? `${pct}%` : "0%" }}
+                                />
+                                {/* Rich Hover Tooltip */}
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-zinc-950 border border-zinc-800 text-[9px] font-mono font-bold text-zinc-300 px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover/step:opacity-100 transition-opacity pointer-events-none z-10">
+                                  {step.title} ({completed}/{total})
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* AI Nudge Audio Bubble */}
                     {taskNudges[task.id] && (
@@ -1369,7 +1448,7 @@ export default function Dashboard({
                           ) : (
                             <>
                               <Volume2 className="h-3.5 w-3.5 animate-pulse" />
-                              <span>Generate Nudge</span>
+                              <span>{t.generateNudge}</span>
                             </>
                           )}
                         </button>
@@ -1381,12 +1460,12 @@ export default function Dashboard({
                             e.stopPropagation();
                             onStartFocusTask(task);
                           }}
-                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-[11px] rounded-lg shadow-md shadow-amber-500/15 cursor-pointer flex items-center gap-1.5 transition-all"
-                          id={`start-focus-btn-${task.id}`}
-                          title="Start focus sprint countdown with pink noise ambient generator"
+                          className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-[11px] rounded-lg shadow-md shadow-amber-500/15 cursor-pointer flex items-center gap-1.5 transition-all"
+                          id={`quick-focus-btn-${task.id}`}
+                          title={t.quickFocusTitle}
                         >
-                          <Timer className="h-3.5 w-3.5 animate-pulse" />
-                          <span>Start Focus</span>
+                          <Zap className="h-3.5 w-3.5 animate-pulse fill-current" />
+                          <span>{t.quickFocus}</span>
                         </button>
                       )}
 

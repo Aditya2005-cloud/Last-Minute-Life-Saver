@@ -12,10 +12,14 @@ import {
   Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import confetti from "canvas-confetti";
+
+import { Language, translations } from "../translations";
 
 interface HabitTrackerProps {
   habits: Habit[];
   onHabitsChange: (habits: Habit[]) => void;
+  language?: Language;
 }
 
 const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -31,7 +35,9 @@ const SUGGESTIONS = [
 export default function HabitTracker({
   habits,
   onHabitsChange,
+  language = "en",
 }: HabitTrackerProps) {
+  const t = translations[language];
   const [newHabitName, setNewHabitName] = useState("");
 
   const handleAddHabit = (e: React.FormEvent) => {
@@ -79,6 +85,55 @@ export default function HabitTracker({
             // Add completion for today
             dates.push(todayStr);
             streak = calculateStreak(dates);
+
+            // Trigger beautiful congratulatory animations for milestone streaks
+            if (streak === 3) {
+              confetti({
+                particleCount: 80,
+                spread: 60,
+                origin: { y: 0.6 },
+                colors: ["#22d3ee", "#06b6d4", "#0891b2", "#38bdf8"], // Radiant Cyans
+              });
+            } else if (streak === 7) {
+              // Double burst from left & right corners
+              const duration = 2 * 1000;
+              const animationEnd = Date.now() + duration;
+              const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+              const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+              const interval: any = setInterval(() => {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                  return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                // since particles fall down, animate a bit higher than random
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+              }, 250);
+            } else if (streak === 30) {
+              // Epic Firework effect
+              const duration = 4 * 1000;
+              const animationEnd = Date.now() + duration;
+
+              const interval: any = setInterval(() => {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                  return clearInterval(interval);
+                }
+
+                confetti({
+                  particleCount: 150,
+                  spread: 80,
+                  origin: { x: Math.random(), y: Math.random() - 0.2 },
+                  colors: ["#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"],
+                });
+              }, 300);
+            }
           }
 
           return {
@@ -167,11 +222,10 @@ export default function HabitTracker({
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
           <ShieldCheck className="h-6 w-6 text-cyan-400" />
-          Friction-Reduction Habits
+          {t.frictionHabits}
         </h2>
         <p className="text-zinc-400 text-sm mt-1">
-          Sustain mini habits (detox, check-ins, hydration) to buffer your
-          energy during deep crunches.
+          {t.sustainMiniHabits}
         </p>
       </div>
 
@@ -182,19 +236,19 @@ export default function HabitTracker({
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500/40 to-transparent" />
 
             <h3 className="text-base font-medium text-white mb-3">
-              Install Habit Loop
+              {t.installHabit}
             </h3>
 
             <form onSubmit={handleAddHabit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
-                  Habit Command Name
+                  {t.habitCommandName}
                 </label>
                 <input
                   type="text"
                   value={newHabitName}
                   onChange={(e) => setNewHabitName(e.target.value)}
-                  placeholder="e.g. Inbox Zero check-in, 1L Water..."
+                  placeholder={t.habitPlaceholder}
                   className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                   required
                   id="habit-name-input"
@@ -207,7 +261,7 @@ export default function HabitTracker({
                 id="submit-habit-btn"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Activate Routine
+                {t.activateRoutine}
               </button>
             </form>
           </div>
@@ -216,7 +270,7 @@ export default function HabitTracker({
           <div className="bg-zinc-900/60 border border-zinc-800/50 rounded-xl p-5 space-y-3 shadow-md">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5 text-cyan-400" />
-              Pre-Configured Loops
+              {t.preconfiguredLoops}
             </h4>
             <div className="space-y-2">
               {SUGGESTIONS.map((sug) => {

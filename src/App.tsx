@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Task, Habit, ScheduleItem } from "./types";
+import { Language, LANGUAGES, translations } from "./translations";
 import Dashboard from "./components/Dashboard";
 import AddTask from "./components/AddTask";
 import AgentPlan from "./components/AgentPlan";
@@ -61,7 +62,8 @@ import {
   ChevronUp,
   X,
   Sun,
-  Moon
+  Moon,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -157,6 +159,17 @@ const DEFAULT_HABITS: Habit[] = [
 ];
 
 export default function App() {
+  // Selected Language State
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem("deadline_genie_language");
+    return (saved as Language) || "en";
+  });
+
+  // Sync language selection to localStorage
+  useEffect(() => {
+    localStorage.setItem("deadline_genie_language", language);
+  }, [language]);
+
   // Navigation Tabs: 'dashboard' | 'add_task' | 'agent_plan' | 'calendar_sync' | 'insights' | 'habits' | 'buffer_shield'
   const [activeTab, setActiveTab] = useState<"dashboard" | "add_task" | "agent_plan" | "calendar_sync" | "insights" | "habits" | "buffer_shield">("dashboard");
 
@@ -1022,6 +1035,9 @@ export default function App() {
     }
   };
 
+  // Translation Helper
+  const t = translations[language];
+
   // Compute total panic states for warning banner
   const activeUnprioritized = tasks.filter(t => !t.completed && t.panicScore === undefined);
   const maxPanicScore = tasks.reduce((max, t) => !t.completed && t.panicScore && t.panicScore > max ? t.panicScore : max, 0);
@@ -1091,10 +1107,10 @@ export default function App() {
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
                 DeadlineGenie AI Companion
                 <span className="text-[10px] uppercase font-mono tracking-wider font-semibold bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 animate-pulse">
-                  CRISIS READY
+                  {t.crisisReady}
                 </span>
               </h1>
-              <p className="text-zinc-500 text-xs mt-0.5">Tactical deep focus engine & Google Workspace sync companion</p>
+              <p className="text-zinc-500 text-xs mt-0.5">{t.brandSubtitle}</p>
             </div>
           </div>
 
@@ -1103,7 +1119,7 @@ export default function App() {
             {maxPanicScore >= 80 && (
               <div className="hidden md:flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg animate-pulse">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span><strong>High Panic Risk:</strong> Action advised!</span>
+                <span>{t.highPanicRisk}</span>
               </div>
             )}
             
@@ -1112,7 +1128,7 @@ export default function App() {
                 onClick={() => setIsClockExpanded(!isClockExpanded)}
                 className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl p-1.5 pl-3.5 shadow-sm hover:bg-zinc-800/70 transition-all cursor-pointer select-none active:scale-98" 
                 id="live-system-clock"
-                title="Click to view detailed tactical countdown"
+                title={t.liveClockTitle}
               >
                 <div className="flex items-center gap-2 font-mono text-zinc-400 text-xs py-1">
                   <Clock className="h-4 w-4 text-zinc-500 shrink-0" />
@@ -1506,8 +1522,8 @@ export default function App() {
                     })() : (
                       <div className="text-center py-4 space-y-2">
                         <Check className="h-8 w-8 text-emerald-500 mx-auto bg-emerald-500/10 p-1.5 rounded-full" />
-                        <h4 className="font-bold text-white text-xs">All Milestones Secured</h4>
-                        <p className="text-zinc-500 text-[10px] px-2">No active upcoming deadlines are registered. Add a task to initiate countdown monitoring.</p>
+                        <h4 className="font-bold text-white text-xs">{t.allMilestonesSecured}</h4>
+                        <p className="text-zinc-500 text-[10px] px-2">{t.noActiveDeadlines}</p>
                       </div>
                     )}
                   </motion.div>
@@ -1515,11 +1531,31 @@ export default function App() {
               </AnimatePresence>
             </div>
 
+            {/* Language Selector Dropdown */}
+            <div className="relative flex items-center bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 rounded-xl px-2.5 h-8 transition-all cursor-pointer group" id="language-selector-wrapper">
+              <Globe className="h-3.5 w-3.5 text-zinc-400 group-hover:text-amber-500 transition-colors mr-1.5 shrink-0" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="bg-transparent text-zinc-300 group-hover:text-white font-mono text-[10px] font-bold pr-4 cursor-pointer appearance-none outline-none focus:ring-0 border-none p-0 w-16"
+                title="Select Language Preference"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code} className="bg-zinc-950 text-white py-1">
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2 flex items-center pointer-events-none text-zinc-500">
+                <ChevronDown className="h-3 w-3" />
+              </div>
+            </div>
+
             {/* Theme Toggle (Dark/Light) */}
             <button
               onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
               className="p-2 rounded-xl bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer flex items-center justify-center h-8 w-8 active:scale-95"
-              title={theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}
+              title={theme === "dark" ? t.themeSwitchLight : t.themeSwitchDark}
             >
               {theme === "dark" ? (
                 <Sun className="h-4 w-4 text-amber-500" />
@@ -1533,7 +1569,7 @@ export default function App() {
               <button
                 onClick={handleLockApp}
                 className="p-2 rounded-xl bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-all cursor-pointer flex items-center justify-center h-8 w-8 active:scale-95"
-                title="Lock Application Screen"
+                title={t.lockApp}
               >
                 <Lock className="h-4 w-4 animate-pulse" />
               </button>
@@ -1541,12 +1577,12 @@ export default function App() {
 
             {/* Google Authentication state */}
             {user ? (
-              <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-850 px-3 py-1 rounded-xl">
+              <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-850 px-3 py-1 rounded-xl h-8">
                 <span className="text-[10px] text-zinc-400 font-mono font-semibold hidden sm:inline">{user.email}</span>
                 <button 
                   onClick={handleLogout}
                   className="text-zinc-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
-                  title="Logout"
+                  title={t.logout}
                 >
                   <LogOut className="h-3.5 w-3.5" />
                 </button>
@@ -1554,10 +1590,10 @@ export default function App() {
             ) : (
               <button 
                 onClick={handleLogin}
-                className="bg-purple-500 hover:bg-purple-400 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg shadow-purple-500/10 transition"
+                className="bg-purple-500 hover:bg-purple-400 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg shadow-purple-500/10 transition h-8 text-xs"
               >
                 <LogIn className="h-3.5 w-3.5" />
-                Connect Calendar
+                {t.connectCalendar}
               </button>
             )}
           </div>
@@ -1631,7 +1667,7 @@ export default function App() {
               }`}
             >
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              {t.tabDashboard}
             </button>
             <button
               onClick={() => setActiveTab("add_task")}
@@ -1642,7 +1678,7 @@ export default function App() {
               }`}
             >
               <PlusCircle className="h-4 w-4" />
-              Add Task
+              {t.tabAddTask}
             </button>
             <button
               onClick={() => setActiveTab("agent_plan")}
@@ -1653,7 +1689,7 @@ export default function App() {
               }`}
             >
               <Cpu className="h-4 w-4" />
-              Agent Plan
+              {t.tabAgentPlan}
             </button>
             <button
               onClick={() => setActiveTab("calendar_sync")}
@@ -1664,7 +1700,7 @@ export default function App() {
               }`}
             >
               <Calendar className="h-4 w-4" />
-              Calendar Sync
+              {t.tabCalendarSync}
             </button>
             <button
               onClick={() => setActiveTab("insights")}
@@ -1675,7 +1711,7 @@ export default function App() {
               }`}
             >
               <Award className="h-4 w-4" />
-              Insights
+              {t.tabInsights}
             </button>
             <button
               onClick={() => setActiveTab("habits")}
@@ -1686,7 +1722,7 @@ export default function App() {
               }`}
             >
               <Heart className="h-4 w-4" />
-              Habits
+              {t.tabHabits}
             </button>
             <button
               onClick={() => setActiveTab("buffer_shield")}
@@ -1697,7 +1733,7 @@ export default function App() {
               }`}
             >
               <Shield className="h-4 w-4" />
-              Buffer Shield
+              {t.tabBufferShield}
             </button>
           </div>
 
@@ -1726,6 +1762,7 @@ export default function App() {
                     accessToken={accessToken}
                     currentTime={currentTime}
                     onStartFocusTask={setActiveFocusTask}
+                    language={language}
                   />
                 </motion.div>
               )}
@@ -1742,6 +1779,7 @@ export default function App() {
                     tasks={bufferedTasks}
                     onAddTask={handleAddTask}
                     onNavigateToDashboard={() => setActiveTab("dashboard")}
+                    language={language}
                   />
                 </motion.div>
               )}
@@ -1799,6 +1837,7 @@ export default function App() {
                     tasks={bufferedTasks}
                     habits={habits}
                     onRestoreTask={(id) => handleToggleComplete(id, true)}
+                    language={language}
                   />
                 </motion.div>
               )}
@@ -1814,6 +1853,7 @@ export default function App() {
                   <HabitTracker 
                     habits={habits}
                     onHabitsChange={handleHabitsChange}
+                    language={language}
                   />
                 </motion.div>
               )}

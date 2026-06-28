@@ -20,13 +20,15 @@ By utilizing artificial intelligence, it breaks down complex projects into bite-
 
 ## ✨ Key Features
 
+* **✨ 3D Immersive Landing Experience**: A highly-polished, scroll-driven interactive 3D universe powered by `@react-three/fiber` and `@react-three/drei`. Users traverse cosmic space surrounding a glowing genie orb while clock and calendar fragments representing chaotic commitments dynamically gather, organize, and subdivide into atomic subtask nodes as they scroll. Built with lightweight, mobile-friendly geometries and a beautiful, high-performance static CSS grid backup fallback.
 * **🧠 AI Game Plan**: Let AI break down complex, looming deadlines into simple, bite-sized tasks. Understand the AI's reasoning process and take immediate, friction-free first steps.
 * **🚨 Urgency Mode (Panic Button)**: In a last-minute panic? Activate Urgency Mode to freeze distractions, configure a dedicated focus block, and receive immediate action directives to meet your deadline.
 * **📊 Task Analytics**: Review your productivity trends over the last 7 days with beautifully rendered completion charts.
+* **🗃️ Completed Task Archive**: A robust and fully searchable archive for all finished initiatives. Users can filter by category, search keywords, sort by Completion Date, Title, Time, or Importance, and instantly restore any task back onto their active dashboard agenda.
 * **📋 Task Hub**: Add details, prioritize tasks with AI, and unpack high-focus step-by-step plans using dynamic Eisenhower matrices.
 * **⏱️ Action Plan & Focus Sessions**: Commit to your tasks with dedicated focus sessions and an actionable checklist roadmap.
 * **📅 Calendar Synchronization**: Connect with Google Workspace for automatic scheduling, agenda mapping, and smart calendar interception.
-* **📈 Habit Tracker**: Build and maintain essential daily habits with a built-in streak tracker.
+* **📈 Habit Tracker**: Build and maintain essential daily habits with a built-in streak tracker. Includes a manual **Active Survival reset button** directly on the dashboard to allow clearing streaks back to zero with full confirmation dialogues.
 * **🌗 Light & Dark Themes**: Work comfortably at any time of day with carefully crafted, elegant light and dark modes.
 
 ## 🚀 Purpose & Why Use It?

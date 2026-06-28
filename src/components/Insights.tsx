@@ -32,10 +32,13 @@ import {
   Legend,
 } from "recharts";
 
+import { Language, translations } from "../translations";
+
 interface InsightsProps {
   tasks: Task[];
   habits: Habit[];
   onRestoreTask?: (taskId: string) => void;
+  language?: Language;
 }
 
 interface Badge {
@@ -48,7 +51,8 @@ interface Badge {
   isActive: boolean;
 }
 
-export default function Insights({ tasks, habits, onRestoreTask }: InsightsProps) {
+export default function Insights({ tasks, habits, onRestoreTask, language = "en" }: InsightsProps) {
+  const t = translations[language];
   const completedTasks = tasks.filter((t) => t.completed);
   const activeTasks = tasks.filter((t) => !t.completed);
   const totalTasks = tasks.length;
@@ -426,11 +430,10 @@ export default function Insights({ tasks, habits, onRestoreTask }: InsightsProps
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
             <Award className="h-6 w-6 text-amber-500" />
-            Tactical Insights Hub
+            {t.insightsTitle}
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
-            Review completion rates, active velocity records, and unlock
-            gamified badges.
+            {t.insightsDesc}
           </p>
         </div>
 

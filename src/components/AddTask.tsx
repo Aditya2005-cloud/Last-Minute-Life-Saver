@@ -14,17 +14,22 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+import { Language, translations } from "../translations";
+
 interface AddTaskProps {
   onAddTask: (task: Task) => void;
   onNavigateToDashboard: () => void;
   tasks?: Task[];
+  language?: Language;
 }
 
 export default function AddTask({
   onAddTask,
   onNavigateToDashboard,
   tasks = [],
+  language = "en",
 }: AddTaskProps) {
+  const t = translations[language];
   // Task state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -169,10 +174,10 @@ export default function AddTask({
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
           <ListTodo className="h-6 w-6 text-amber-500" />
-          Initialize New Objective
+          {t.initNewObjective}
         </h2>
         <p className="text-zinc-400 text-sm mt-1">
-          Add details, configure priorities, or use vocal command transcription.
+          {t.addTaskDetails}
         </p>
       </div>
 
@@ -187,14 +192,14 @@ export default function AddTask({
           {/* TITLE INPUT with Microphone button */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
-              Initiative Name / Title
+              {t.initiativeName}
             </label>
             <div className="relative flex items-center">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Finish physics lab write-up or buy groceries..."
+                placeholder={t.taskPlaceholder}
                 className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl pl-4 pr-12 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-semibold"
                 required
                 id="add-task-title"
@@ -298,12 +303,12 @@ export default function AddTask({
           {/* DESCRIPTION */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono">
-              Context & Tactical Details
+              {t.tacticalDetails}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide references, chapters to cover, or specific criteria to check..."
+              placeholder={t.contextPlaceholder}
               rows={3}
               className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium resize-none"
               id="add-task-description"
@@ -315,7 +320,7 @@ export default function AddTask({
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                Est. Block Minutes
+                {t.estBlockMinutes}
               </label>
               <input
                 type="number"
@@ -333,7 +338,7 @@ export default function AddTask({
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                Looming Deadline Date
+                {t.loomingDeadline}
               </label>
               <input
                 type="date"
@@ -351,7 +356,7 @@ export default function AddTask({
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <Sliders className="h-3.5 w-3.5 text-zinc-400" />
-                Baseline Importance
+                {t.baselineImportance}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(["high", "medium", "low"] as const).map((level) => (
@@ -369,7 +374,7 @@ export default function AddTask({
                         : "bg-zinc-950 border-zinc-850 text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
-                    {level}
+                    {t[level as keyof typeof t] || level}
                   </button>
                 ))}
               </div>
@@ -378,7 +383,7 @@ export default function AddTask({
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-zinc-400" />
-                Category Corridor
+                {t.categoryCorridor}
               </label>
 
               {!isCustomCategory ? (
@@ -461,7 +466,7 @@ export default function AddTask({
               onClick={onNavigateToDashboard}
               className="px-5 py-3 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
-              Cancel
+              {t.cancel}
             </button>
             <button
               type="submit"
@@ -469,7 +474,7 @@ export default function AddTask({
               id="submit-new-task-btn"
             >
               <Plus className="h-4 w-4 stroke-[3px]" />
-              SECURE OBJECTIVE <span className="opacity-60 text-[10px] ml-1 font-mono tracking-tighter">⌘+↵</span>
+              {t.secureObjective} <span className="opacity-60 text-[10px] ml-1 font-mono tracking-tighter">⌘+↵</span>
             </button>
           </div>
         </form>
