@@ -118,13 +118,16 @@ export default function Dashboard({
   const [statusFilter, setStatusFilter] = useState<
     "active" | "completed" | "all"
   >("active");
-  const [internalCategory, setInternalCategory] = useState("all");
+  const [internalCategory, setInternalCategory] = useState<string>(() => {
+    return localStorage.getItem("deadline_genie_selected_category") || "all";
+  });
   const selectedCategory = externalCategory !== undefined ? externalCategory : internalCategory;
   const setSelectedCategory = (cat: string) => {
     if (onSelectedCategoryChange) {
       onSelectedCategoryChange(cat);
     } else {
       setInternalCategory(cat);
+      localStorage.setItem("deadline_genie_selected_category", cat);
     }
   };
   const [sortBy, setSortBy] = useState<"dueDate" | "importance" | "creation" | "urgency">("dueDate");
@@ -1091,23 +1094,53 @@ export default function Dashboard({
               </button>
             </div>
 
-            {/* Category Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 text-white rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
-                id="category-filter-select"
-              >
-                <option value="all">{t.allCategories}</option>
-                {uniqueCategories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
-                <SlidersHorizontal className="h-3 w-3" />
+            {/* Category Navigation Tabs with Badge Counts */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5" id="dashboard-category-tabs-wrapper">
+              <div className="flex items-center bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 gap-1" id="dashboard-category-tabs" role="tablist">
+                <button
+                  onClick={() => setSelectedCategory("all")}
+                  role="tab"
+                  aria-selected={selectedCategory === "all"}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                    selectedCategory === "all"
+                      ? "bg-amber-500 text-black shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
+                  }`}
+                >
+                  <span>{t.allCategories}</span>
+                  <span className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-black font-mono ${
+                    selectedCategory === "all"
+                      ? "bg-black/20 text-black"
+                      : "bg-zinc-800 text-zinc-400"
+                  }`}>
+                    {tasks.filter(t => !t.completed).length}
+                  </span>
+                </button>
+                {uniqueCategories.map(cat => {
+                  const count = tasks.filter(t => t.category === cat && !t.completed).length;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      role="tab"
+                      aria-selected={selectedCategory === cat}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                        selectedCategory === cat
+                          ? "bg-amber-500 text-black shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      <span className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-black font-mono ${
+                        selectedCategory === cat
+                          ? "bg-black/20 text-black"
+                          : "bg-zinc-800 text-zinc-400"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

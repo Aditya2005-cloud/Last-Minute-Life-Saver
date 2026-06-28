@@ -280,14 +280,18 @@ body.light header {
 }
 
 #primary-app-navigation button:hover::after,
+#primary-app-navigation button:focus::after,
+#primary-app-navigation button:focus-visible::after,
 #primary-app-navigation button.border-amber-500::after {
   width: 100% !important;
 }
 
-#primary-app-navigation button:hover {
+#primary-app-navigation button:hover,
+#primary-app-navigation button:focus {
   transform: translateY(-2px);
   background-color: rgba(245, 158, 11, 0.05) !important;
   color: #f59e0b !important;
+  outline: none !important;
 }
 
 #primary-app-navigation button:active {
@@ -318,9 +322,11 @@ body.light #primary-app-navigation button::after {
   background-color: #111111 !important; /* Black/Dark for light mode */
 }
 
-body.light #primary-app-navigation button:hover {
+body.light #primary-app-navigation button:hover,
+body.light #primary-app-navigation button:focus {
   background-color: rgba(0, 0, 0, 0.04) !important;
   color: #111111 !important;
+  outline: none !important;
 }
 
 body.light #primary-app-navigation button:active {

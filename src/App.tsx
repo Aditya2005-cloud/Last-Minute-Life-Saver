@@ -66,7 +66,9 @@ import {
   Globe,
   SlidersHorizontal,
   Search,
-  Download
+  Download,
+  Columns,
+  Rows
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -176,8 +178,27 @@ export default function App() {
   // Navigation Tabs: 'dashboard' | 'add_task' | 'agent_plan' | 'calendar_sync' | 'insights' | 'habits' | 'buffer_shield'
   const [activeTab, setActiveTab] = useState<"dashboard" | "add_task" | "agent_plan" | "calendar_sync" | "insights" | "habits" | "buffer_shield">("dashboard");
 
+  // Navigation layout orientation: 'horizontal' | 'vertical' (sidebar)
+  const [navOrientation, setNavOrientation] = useState<"horizontal" | "vertical">(() => {
+    const saved = localStorage.getItem("deadline_genie_nav_orientation");
+    return (saved as "horizontal" | "vertical") || "horizontal";
+  });
+
+  // Sync navOrientation to localStorage
+  useEffect(() => {
+    localStorage.setItem("deadline_genie_nav_orientation", navOrientation);
+  }, [navOrientation]);
+
   // Selected category for the global filtering dropdown
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    const saved = localStorage.getItem("deadline_genie_selected_category");
+    return saved || "all";
+  });
+
+  // Sync selectedCategory to localStorage
+  useEffect(() => {
+    localStorage.setItem("deadline_genie_selected_category", selectedCategory);
+  }, [selectedCategory]);
 
   // Selected search query for the global search input
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -1097,6 +1118,29 @@ export default function App() {
   // Translation Helper
   const t = translations[language];
 
+  // Keyboard Navigation for Menu
+  const handleNavigationKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const buttons = Array.from(e.currentTarget.querySelectorAll("button"));
+    const activeIndex = buttons.findIndex((btn) => document.activeElement === btn);
+    if (activeIndex === -1) return;
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const nextIndex = (activeIndex + 1) % buttons.length;
+      const targetBtn = buttons[nextIndex];
+      if (targetBtn) {
+        targetBtn.focus();
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prevIndex = (activeIndex - 1 + buttons.length) % buttons.length;
+      const targetBtn = buttons[prevIndex];
+      if (targetBtn) {
+        targetBtn.focus();
+      }
+    }
+  };
+
   // Localized Export label
   const exportLabel = {
     en: "Export Tasks",
@@ -1151,6 +1195,47 @@ export default function App() {
       />
     );
   }
+
+  const getNavButtonClass = (tabName: string) => {
+    const isActive = activeTab === tabName;
+    const baseClasses = "relative group px-3 sm:px-4 md:px-5 py-2.5 md:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0";
+    
+    if (navOrientation === "vertical") {
+      return `${baseClasses} border-b-2 lg:border-b-0 lg:border-l-2 lg:px-4 lg:py-2.5 lg:w-full ${
+        isActive 
+          ? "border-amber-500 text-amber-400 bg-amber-500/5 lg:bg-amber-500/5" 
+          : "border-transparent text-zinc-500 hover:text-zinc-300 lg:hover:bg-zinc-900/50"
+      }`;
+    } else {
+      return `${baseClasses} border-b-2 ${
+        isActive 
+          ? "border-amber-500 text-amber-400" 
+          : "border-transparent text-zinc-500 hover:text-zinc-300"
+      }`;
+    }
+  };
+
+  const getTooltipContent = (tabName: string) => {
+    const isEn = language === "en" || !language;
+    switch (tabName) {
+      case "dashboard":
+        return isEn ? "Urgent task planner, real-time deadlines & priorities" : t.tabDashboard;
+      case "add_task":
+        return isEn ? "Create new task with smart buffer durations" : t.tabAddTask;
+      case "agent_plan":
+        return isEn ? "AI autonomous task planner & scheduler helper" : t.tabAgentPlan;
+      case "calendar_sync":
+        return isEn ? "Sync schedule with Google Calendar platform" : t.tabCalendarSync;
+      case "insights":
+        return isEn ? "Review productivity metrics, streaks & habits" : t.tabInsights;
+      case "habits":
+        return isEn ? "Form and track daily consistency routines" : t.tabHabits;
+      case "buffer_shield":
+        return isEn ? "Set distraction shields and focus timers" : t.tabBufferShield;
+      default:
+        return "";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-amber-500/30 selection:text-white relative overflow-hidden" id="main-app-container">
@@ -1723,103 +1808,293 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" id="primary-app-layout">
-        <div className="space-y-8">
+        <div className={navOrientation === "vertical" ? "lg:flex lg:flex-row lg:items-start lg:gap-8 space-y-8 lg:space-y-0" : "space-y-8"}>
           
           {/* NAVIGATION BAR - Sleek Stitch theme styling with Category Filter */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-900 gap-4 pb-2 md:pb-0" id="primary-app-navigation-wrapper">
-            <div className="flex border-b border-transparent md:border-none overflow-x-auto scrollbar-none" id="primary-app-navigation">
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "dashboard" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+          <motion.div 
+            layout
+            transition={{ type: "spring", stiffness: 180, damping: 25 }}
+            className={`border-b border-zinc-900 pb-2 md:pb-0 ${
+              navOrientation === "vertical"
+                ? "lg:flex lg:flex-col lg:items-stretch lg:border-b-0 lg:border-r lg:border-zinc-900 lg:w-64 lg:pr-6 lg:pb-0 lg:sticky lg:top-24 lg:shrink-0 lg:gap-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                : "flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+            }`} 
+            id="primary-app-navigation-wrapper"
+          >
+            <motion.div 
+              layout
+              transition={{ type: "spring", stiffness: 180, damping: 25 }}
+              className={`flex items-center gap-3 w-full md:w-auto ${
+                navOrientation === "vertical"
+                  ? "lg:flex-col lg:items-stretch lg:w-full"
+                  : "flex-wrap sm:flex-nowrap"
+              }`} 
+              id="primary-app-navigation-container"
+            >
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                className={`flex border-b border-transparent md:border-none gap-y-1 gap-x-1 md:gap-x-1.5 ${
+                  navOrientation === "vertical"
+                    ? "lg:flex-col lg:items-stretch lg:gap-y-1.5"
+                    : "flex-wrap items-center"
+                }`} 
+                id="primary-app-navigation"
+                role="tablist"
+                aria-label="Application Navigation"
+                onKeyDown={handleNavigationKeyDown}
               >
-                <LayoutDashboard className="h-4 w-4" />
-                <span>{t.tabDashboard}</span>
-                {incompleteHighPriorityCount > 0 && (
-                  <span
-                    id="dashboard-high-priority-badge"
-                    className="ml-1 flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-black rounded-full bg-red-600 text-white dark:bg-amber-500 dark:text-zinc-950 shadow-sm border border-transparent select-none animate-pulse"
-                    title={`${incompleteHighPriorityCount} incomplete high-priority tasks`}
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("dashboard")}
+                  role="tab"
+                  aria-selected={activeTab === "dashboard"}
+                  tabIndex={activeTab === "dashboard" ? 0 : -1}
+                  className={getNavButtonClass("dashboard")}
+                  title={getTooltipContent("dashboard")}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span>{t.tabDashboard}</span>
+                  {incompleteHighPriorityCount > 0 && (
+                    <span
+                      id="dashboard-high-priority-badge"
+                      className="ml-1 flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-black rounded-full bg-red-600 text-white dark:bg-amber-500 dark:text-zinc-950 shadow-sm border border-transparent select-none animate-pulse"
+                      title={`${incompleteHighPriorityCount} incomplete high-priority tasks`}
+                    >
+                      {incompleteHighPriorityCount}
+                    </span>
+                  )}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
                   >
-                    {incompleteHighPriorityCount}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("add_task")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "add_task" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
+                    {getTooltipContent("dashboard")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("add_task")}
+                  role="tab"
+                  aria-selected={activeTab === "add_task"}
+                  tabIndex={activeTab === "add_task" ? 0 : -1}
+                  className={getNavButtonClass("add_task")}
+                  title={getTooltipContent("add_task")}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  {t.tabAddTask}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("add_task")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("agent_plan")}
+                  role="tab"
+                  aria-selected={activeTab === "agent_plan"}
+                  tabIndex={activeTab === "agent_plan" ? 0 : -1}
+                  className={getNavButtonClass("agent_plan")}
+                  title={getTooltipContent("agent_plan")}
+                >
+                  <Cpu className="h-4 w-4" />
+                  {t.tabAgentPlan}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("agent_plan")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("calendar_sync")}
+                  role="tab"
+                  aria-selected={activeTab === "calendar_sync"}
+                  tabIndex={activeTab === "calendar_sync" ? 0 : -1}
+                  className={getNavButtonClass("calendar_sync")}
+                  title={getTooltipContent("calendar_sync")}
+                >
+                  <Calendar className="h-4 w-4" />
+                  {t.tabCalendarSync}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("calendar_sync")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("insights")}
+                  role="tab"
+                  aria-selected={activeTab === "insights"}
+                  tabIndex={activeTab === "insights" ? 0 : -1}
+                  className={getNavButtonClass("insights")}
+                  title={getTooltipContent("insights")}
+                >
+                  <Award className="h-4 w-4" />
+                  {t.tabInsights}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("insights")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("habits")}
+                  role="tab"
+                  aria-selected={activeTab === "habits"}
+                  tabIndex={activeTab === "habits" ? 0 : -1}
+                  className={getNavButtonClass("habits")}
+                  title={getTooltipContent("habits")}
+                >
+                  <Heart className="h-4 w-4" />
+                  {t.tabHabits}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("habits")}
+                  </div>
+                </motion.button>
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setActiveTab("buffer_shield")}
+                  role="tab"
+                  aria-selected={activeTab === "buffer_shield"}
+                  tabIndex={activeTab === "buffer_shield" ? 0 : -1}
+                  className={getNavButtonClass("buffer_shield")}
+                  title={getTooltipContent("buffer_shield")}
+                >
+                  <Shield className="h-4 w-4" />
+                  {t.tabBufferShield}
+                  {/* Tooltip */}
+                  <div 
+                    className={`absolute z-50 pointer-events-none opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap bg-zinc-900/95 backdrop-blur-sm border border-zinc-800 text-amber-400 font-mono text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-md shadow-2xl ${
+                      navOrientation === "vertical"
+                        ? "lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 lg:-translate-x-2 lg:group-hover:translate-x-0 top-full left-1/2 -translate-x-1/2 mt-2"
+                        : "top-full left-1/2 -translate-x-1/2 mt-2"
+                    }`}
+                  >
+                    {getTooltipContent("buffer_shield")}
+                  </div>
+                </motion.button>
+
+                {/* Vertical/Horizontal Orientation Toggle Button */}
+                <motion.button
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  onClick={() => setNavOrientation(navOrientation === "horizontal" ? "vertical" : "horizontal")}
+                  className="px-3 sm:px-4 md:px-5 py-2.5 md:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b-2 border-transparent lg:border-b-0 lg:border-l-2 lg:px-4 lg:py-2.5 lg:w-full transition-all flex items-center gap-2 cursor-pointer shrink-0 text-zinc-500 hover:text-amber-500 hover:border-amber-500/50 lg:hover:bg-zinc-900/30"
+                  title={navOrientation === "horizontal" ? "Switch to Sidebar Layout" : "Switch to Top-bar Layout"}
+                  id="nav-orientation-toggle"
+                >
+                  {navOrientation === "horizontal" ? (
+                    <>
+                      <Columns className="h-4 w-4 text-amber-500" />
+                      <span className="lg:inline">Sidebar</span>
+                    </>
+                  ) : (
+                    <>
+                      <Rows className="h-4 w-4 text-amber-500" />
+                      <span className="lg:inline">Top-bar</span>
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+
+              {/* Category Filter Dropdown next to Navigation Tabs */}
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                className={`relative shrink-0 flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl px-2.5 py-1.5 shadow-sm ${
+                  navOrientation === "vertical"
+                    ? "lg:w-full lg:justify-between"
+                    : ""
+                }`} 
+                id="nav-category-dropdown-container"
               >
-                <PlusCircle className="h-4 w-4" />
-                {t.tabAddTask}
-              </button>
-              <button
-                onClick={() => setActiveTab("agent_plan")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "agent_plan" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Cpu className="h-4 w-4" />
-                {t.tabAgentPlan}
-              </button>
-              <button
-                onClick={() => setActiveTab("calendar_sync")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "calendar_sync" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Calendar className="h-4 w-4" />
-                {t.tabCalendarSync}
-              </button>
-              <button
-                onClick={() => setActiveTab("insights")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "insights" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Award className="h-4 w-4" />
-                {t.tabInsights}
-              </button>
-              <button
-                onClick={() => setActiveTab("habits")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "habits" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Heart className="h-4 w-4" />
-                {t.tabHabits}
-              </button>
-              <button
-                onClick={() => setActiveTab("buffer_shield")}
-                className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
-                  activeTab === "buffer_shield" 
-                    ? "border-amber-500 text-amber-400" 
-                    : "border-transparent text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <Shield className="h-4 w-4" />
-                {t.tabBufferShield}
-              </button>
-            </div>
+                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-500" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    if (activeTab !== "dashboard" && activeTab !== "insights") {
+                      setActiveTab("dashboard");
+                    }
+                  }}
+                  className="bg-transparent text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white text-xs font-bold font-mono focus:outline-none transition-all cursor-pointer border-none outline-none pr-5 pl-1 py-0.5 appearance-none flex-1"
+                  id="nav-category-dropdown"
+                >
+                  <option value="all" className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
+                    All Categories
+                  </option>
+                  {uniqueCategories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-2 flex items-center text-zinc-400">
+                  <ChevronDown className="h-3 w-3" />
+                </div>
+              </motion.div>
+            </motion.div>
 
             {/* Quick Filters and Search Group */}
-            <div className="flex flex-wrap items-center gap-3 px-4 md:px-0 pb-3 md:pb-0 shrink-0">
+            <motion.div 
+              layout
+              transition={{ type: "spring", stiffness: 180, damping: 25 }}
+              className={`flex flex-wrap items-center gap-3 px-4 md:px-0 pb-3 md:pb-0 shrink-0 ${
+                navOrientation === "vertical"
+                  ? "lg:flex-col lg:items-stretch lg:px-0 lg:pb-0 lg:w-full"
+                  : ""
+              }`}
+              id="quick-filters-search-group"
+            >
               {/* Quick Search Input */}
-              <div className="relative">
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                className={`relative ${
+                  navOrientation === "vertical" ? "lg:w-full" : ""
+                }`}
+              >
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
                 <input
                   type="text"
@@ -1831,7 +2106,9 @@ export default function App() {
                     }
                   }}
                   placeholder={t.searchTasksPlaceholder || "Search tasks..."}
-                  className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-650 rounded-lg pl-8 pr-7 py-1.5 text-xs font-bold font-sans focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all w-44 md:w-56"
+                  className={`bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-650 rounded-lg pl-8 pr-7 py-1.5 text-xs font-bold font-sans focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all ${
+                    navOrientation === "vertical" ? "w-44 md:w-56 lg:w-full" : "w-44 md:w-56"
+                  }`}
                   id="nav-task-search-input"
                 />
                 {searchQuery && (
@@ -1842,54 +2119,111 @@ export default function App() {
                     <X className="h-3 w-3" />
                   </button>
                 )}
-              </div>
+              </motion.div>
 
-              {/* Quick Category Filter Dropdown */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono hidden sm:inline">
+              {/* Category Navigation Tabs with Badge Counts */}
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                className={`flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 ${
+                  navOrientation === "vertical" ? "lg:flex-col lg:items-stretch lg:overflow-visible lg:w-full" : ""
+                }`} 
+                id="nav-category-tabs-wrapper"
+              >
+                <span className={`text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono hidden sm:inline shrink-0 ${
+                  navOrientation === "vertical" ? "lg:block lg:mb-1" : ""
+                }`}>
                   Category:
                 </span>
-                <div className="relative">
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => {
-                      setSelectedCategory(e.target.value);
-                      // Automatically redirect to Dashboard to view the filtered list
+                <motion.div 
+                  layout
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  className={`flex items-center bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl p-1 gap-1 ${
+                    navOrientation === "vertical" ? "lg:flex-col lg:items-stretch lg:w-full" : ""
+                  }`} 
+                  id="nav-category-tabs" 
+                  role="tablist"
+                >
+                  <motion.button
+                    layout
+                    transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                    onClick={() => {
+                      setSelectedCategory("all");
                       if (activeTab !== "dashboard" && activeTab !== "insights") {
                         setActiveTab("dashboard");
                       }
                     }}
-                    className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
-                    id="nav-category-filter"
+                    role="tab"
+                    aria-selected={selectedCategory === "all"}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                      selectedCategory === "all"
+                        ? "bg-amber-500 text-black shadow-sm font-bold"
+                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40"
+                    } ${navOrientation === "vertical" ? "lg:w-full lg:justify-between" : ""}`}
                   >
-                    <option value="all">All Categories</option>
-                    {uniqueCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
-                    <SlidersHorizontal className="h-3 w-3" />
-                  </div>
-                </div>
-              </div>
+                    <span>All</span>
+                    <span className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-black font-mono ${
+                      selectedCategory === "all"
+                        ? "bg-black/20 text-black"
+                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                    }`}>
+                      {tasks.filter(t => !t.completed).length}
+                    </span>
+                  </motion.button>
+                  {uniqueCategories.map(cat => {
+                    const count = tasks.filter(t => t.category === cat && !t.completed).length;
+                    return (
+                      <motion.button
+                        layout
+                        transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                        key={cat}
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          if (activeTab !== "dashboard" && activeTab !== "insights") {
+                            setActiveTab("dashboard");
+                          }
+                        }}
+                        role="tab"
+                        aria-selected={selectedCategory === cat}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer shrink-0 ${
+                          selectedCategory === cat
+                            ? "bg-amber-500 text-black shadow-sm font-bold"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40"
+                        } ${navOrientation === "vertical" ? "lg:w-full lg:justify-between" : ""}`}
+                      >
+                        <span>{cat}</span>
+                        <span className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[9px] font-black font-mono ${
+                          selectedCategory === cat
+                            ? "bg-black/20 text-black"
+                            : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                        }`}>
+                          {count}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </motion.div>
+              </motion.div>
 
               {/* Export Tasks Button */}
-              <button
+              <motion.button
+                layout
+                transition={{ type: "spring", stiffness: 180, damping: 25 }}
                 onClick={handleExportTasks}
-                className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-white dark:text-amber-400 border border-transparent dark:border-amber-500/30 rounded-lg px-3 py-1.5 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 shrink-0"
+                className={`flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-white dark:text-amber-400 border border-transparent dark:border-amber-500/30 rounded-lg px-3 py-1.5 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm hover:shadow active:scale-95 shrink-0 ${
+                  navOrientation === "vertical" ? "lg:w-full" : ""
+                }`}
                 title="Export current filtered task list as JSON"
                 id="btn-export-tasks"
               >
                 <Download className="h-3.5 w-3.5" />
                 <span>{exportLabel}</span>
-              </button>
-            </div>
-          </div>
+              </motion.button>
+            </motion.div>
+          </motion.div>
 
           {/* VIEWS CONTROLLER */}
-          <div className="min-h-[400px]" id="views-viewport">
+          <div className={`min-h-[400px] ${navOrientation === "vertical" ? "lg:flex-1 lg:min-w-0" : ""}`} id="views-viewport">
             <AnimatePresence mode="wait">
               {activeTab === "dashboard" && (
                 <motion.div

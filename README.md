@@ -4,7 +4,9 @@
 
 **Your AI-Powered Last-Minute Life Saver**
 
-[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
+*Project Submission for **Vibe2Ship Hackathon***
+
+[![React](https://img.shields.io/badge/React-18/19-blue.svg)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-38B2AC.svg)](https://tailwindcss.com/)
 [![Gemini](https://img.shields.io/badge/Powered%20By-Google%20Gemini-amber.svg)](https://deepmind.google/technologies/gemini/)
@@ -12,24 +14,59 @@
 DeadlineGenie is a tactical productivity companion designed to proactively help you plan, prioritize, and crush looming deadlines. 
 By utilizing artificial intelligence, it breaks down complex projects into bite-sized actionable steps, guiding your focus and keeping you on track through high-focus interventions and smart scheduling.
 
-[Features](#-key-features) • [Purpose](#-purpose--why-use-it) • [Tech Stack](#-technology-stack) • [Getting Started](#-running-locally) • [Contributing](#-contributing)
+[Submission Details](#-vibe2ship-hackathon-submission) • [Features](#-key-features) • [Purpose](#-purpose--why-use-it) • [Tech Stack](#-technology-stack) • [Getting Started](#-running-locally)
 
 </div>
 
 ---
 
+## 🏆 Vibe2Ship Hackathon Submission
+
+### 🎯 Problem Statement Selected
+**The Last-Minute Life Saver** — Building an AI-powered productivity companion that proactively helps users plan, prioritize, and complete tasks before deadlines are missed, going beyond passive reminders to drive meaningful action.
+
+### 💡 Solution Overview
+DeadlineGenie is a tactical AI productivity companion that helps users beat deadlines by breaking down overwhelming tasks into clear, actionable steps. Instead of a passive to-do list, it uses an AI agent powered by Google Gemini to reason about each task — understanding urgency, breaking large goals into bite-sized subtasks, and guiding the user through focused execution rather than just storing reminders.
+
+The app includes a dedicated “Urgency Mode” for last-minute panic situations, syncs with the user’s calendar for realistic scheduling, and tracks productivity trends and habits over time to build sustainable deadline-beating behavior.
+
+---
+
 ## ✨ Key Features
 
-* **✨ 3D Immersive Landing Experience**: A highly-polished, scroll-driven interactive 3D universe powered by `@react-three/fiber` and `@react-three/drei`. Users traverse cosmic space surrounding a glowing genie orb while clock and calendar fragments representing chaotic commitments dynamically gather, organize, and subdivide into atomic subtask nodes as they scroll. Built with lightweight, mobile-friendly geometries and a beautiful, high-performance static CSS grid backup fallback.
-* **🧠 AI Game Plan**: Let AI break down complex, looming deadlines into simple, bite-sized tasks. Understand the AI's reasoning process and take immediate, friction-free first steps.
-* **🚨 Urgency Mode (Panic Button)**: In a last-minute panic? Activate Urgency Mode to freeze distractions, configure a dedicated focus block, and receive immediate action directives to meet your deadline.
-* **📊 Task Analytics**: Review your productivity trends over the last 7 days with beautifully rendered completion charts.
-* **🗃️ Completed Task Archive**: A robust and fully searchable archive for all finished initiatives. Users can filter by category, search keywords, sort by Completion Date, Title, Time, or Importance, and instantly restore any task back onto their active dashboard agenda.
-* **📋 Task Hub**: Add details, prioritize tasks with AI, and unpack high-focus step-by-step plans using dynamic Eisenhower matrices.
-* **⏱️ Action Plan & Focus Sessions**: Commit to your tasks with dedicated focus sessions and an actionable checklist roadmap.
-* **📅 Calendar Synchronization**: Connect with Google Workspace for automatic scheduling, agenda mapping, and smart calendar interception.
-* **📈 Habit Tracker**: Build and maintain essential daily habits with a built-in streak tracker. Includes a manual **Active Survival reset button** directly on the dashboard to allow clearing streaks back to zero with full confirmation dialogues.
-* **🌗 Light & Dark Themes**: Work comfortably at any time of day with carefully crafted, elegant light and dark modes.
+* **🧠 AI Game Plan** — Gemini-powered task breakdown that splits complex deadlines into bite-sized, actionable subtasks with visible AI reasoning.
+* **🚨 Urgency Mode (Panic Button)** — A focused crisis mode that freezes distractions and gives immediate action directives when a deadline is critically close.
+* **📋 Task Hub & Prioritizer** — AI-assisted task prioritization using an Eisenhower-matrix-style approach.
+* **⏱️ Focus Sessions** — Dedicated, checklist-driven work sessions for committed execution.
+* **📅 Calendar Synchronization** — Connects with Google Calendar for automatic scheduling and agenda mapping.
+* **📊 Task Analytics** — Visual 7-day productivity and completion trend charts.
+* **🗃️ Completed Task Archive** — Searchable, filterable history of finished tasks with one-click restore.
+* **📈 Habit Tracker** — Daily streak tracking with reset/confirmation controls.
+* **✨ 3D Immersive Landing Experience** — A scroll-driven interactive 3D scene built with Three.js/React Three Fiber introducing the app’s concept, with a lightweight 2D fallback for performance.
+* **🌗 Light & Dark Themes** — Fully designed and polished for both modes.
+
+---
+
+## 🛠️ Technology Stack
+
+DeadlineGenie is built using a modern full-stack web architecture:
+
+* **Frontend**: React (v18/19), TypeScript, Vite, Tailwind CSS (v4), Framer Motion (for smooth, purposeful animations), Lucide React (Icons), Recharts (for data visualization), Three.js / React Three Fiber / `@react-three/drei` (for 3D graphics).
+* **Backend**: Express.js, TypeScript.
+* **AI Integration**: Google Gemini API for intelligent task breakdown, deadline diagnostics, and tactical advice.
+* **Database**: Firebase/Firestore for robust, durable cloud persistence of your tasks and habits.
+
+---
+
+## ☁️ Google Technologies Utilized
+
+* **Google Gemini API** — Core AI reasoning engine for task breakdown, prioritization, and tactical guidance.
+* **Google AI Studio** — Primary build environment used to develop and iterate on the application.
+* **Google Calendar** — Calendar synchronization for scheduling and agenda mapping.
+* **Firebase / Firestore** — Cloud data persistence for tasks and habits.
+* **Google Cloud Run** — Production deployment of the application.
+
+---
 
 ## 🚀 Purpose & Why Use It?
 
@@ -37,14 +74,7 @@ We've all been there—staring at a deadline that's approaching way too fast, fe
 
 Whether you're a student cramming for finals, a developer sprinting toward a launch, or a professional managing overlapping projects, DeadlineGenie operates as your personal productivity assistant. It isolates distractions, establishes your focus vectors, and provides the step-by-step blueprints you need to execute efficiently. Stop stressing about how to start, and start executing.
 
-## 🛠️ Technology Stack
-
-DeadlineGenie is built using a modern full-stack web architecture:
-
-* **Frontend**: React (v18+), Vite, Tailwind CSS (v4), Framer Motion (for smooth, purposeful animations), Lucide React (Icons), Recharts (for data visualization).
-* **Backend**: Express.js, TypeScript.
-* **AI Integration**: Google Gemini API for intelligent task breakdown, deadline diagnostics, and tactical advice.
-* **Database**: Firebase/Firestore for robust, durable cloud persistence of your tasks and habits.
+---
 
 ## 💻 Running Locally
 
@@ -69,7 +99,7 @@ DeadlineGenie is built using a modern full-stack web architecture:
 3. **Configure Environment Variables**:
    Copy the example environment file and fill in your API keys:
    ```bash
-   cp .env.example .env
+   copy .env.example .env
    ```
    > 🔑 **Note**: You will need a Google Gemini API Key (`GEMINI_API_KEY`) to power the AI features, and Firebase configuration if persistence is enabled.
 
@@ -82,8 +112,9 @@ DeadlineGenie is built using a modern full-stack web architecture:
 5. **Build for Production**:
    ```bash
    npm run build
-   npm run start
    ```
+
+---
 
 ## 🤝 Contributing
 
@@ -95,7 +126,7 @@ Contributions make the open-source community an amazing place to learn, inspire,
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-*Please ensure that you adhere to the project's styling and architectural guidelines (Tailwind utility classes, modular React components).*
+---
 
 ## 📄 License
 
