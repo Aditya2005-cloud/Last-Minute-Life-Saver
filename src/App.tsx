@@ -68,7 +68,8 @@ import {
   Search,
   Download,
   Columns,
-  Rows
+  Rows,
+  Cloud
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -161,6 +162,16 @@ const DEFAULT_HABITS: Habit[] = [
     completedDates: [],
     streak: 0
   }
+];
+
+const NAVIGATION_TABS: Array<"dashboard" | "add_task" | "agent_plan" | "calendar_sync" | "insights" | "habits" | "buffer_shield"> = [
+  "dashboard",
+  "add_task",
+  "agent_plan",
+  "calendar_sync",
+  "insights",
+  "habits",
+  "buffer_shield"
 ];
 
 export default function App() {
@@ -393,6 +404,97 @@ export default function App() {
   } | null>(null);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Firestore Sync Toast Notification State
+  const [syncToast, setSyncToast] = useState<{
+    show: boolean;
+    message: string;
+  }>({
+    show: false,
+    message: ""
+  });
+  const syncToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerSyncNotification = (message: string = "Data synced securely to Firestore") => {
+    if (syncToastTimeoutRef.current) {
+      clearTimeout(syncToastTimeoutRef.current);
+    }
+    setSyncToast({ show: true, message });
+    syncToastTimeoutRef.current = setTimeout(() => {
+      setSyncToast(prev => ({ ...prev, show: false }));
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (syncToastTimeoutRef.current) {
+        clearTimeout(syncToastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Swipe to switch navigation handlers
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    if (e.changedTouches.length !== 1) return;
+
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartRef.current.x;
+    const diffY = touch.clientY - touchStartRef.current.y;
+    const duration = Date.now() - touchStartRef.current.time;
+
+    touchStartRef.current = null;
+
+    // Reject slow or diagonal swipes
+    if (duration > 400) return;
+    if (Math.abs(diffX) < 70) return; // reasonable swipe distance threshold
+    if (Math.abs(diffY) > Math.abs(diffX) * 0.5) return; // reject primarily vertical drag
+
+    // Ignore swipe events in interactive element subtrees
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest("select") ||
+      target.closest("[role='slider']") ||
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest("[data-no-swipe]")
+    ) {
+      return;
+    }
+
+    const currentIndex = NAVIGATION_TABS.indexOf(activeTab);
+    if (currentIndex === -1) return;
+
+    if (diffX < 0) {
+      // Swiped Left: progress forward
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < NAVIGATION_TABS.length) {
+        setActiveTab(NAVIGATION_TABS[nextIndex]);
+        triggerSyncNotification(`Swiped to: ${NAVIGATION_TABS[nextIndex].replace("_", " ")}`);
+      }
+    } else {
+      // Swiped Right: go backward
+      const prevIndex = currentIndex - 1;
+      if (prevIndex >= 0) {
+        setActiveTab(NAVIGATION_TABS[prevIndex]);
+        triggerSyncNotification(`Swiped to: ${NAVIGATION_TABS[prevIndex].replace("_", " ")}`);
+      }
+    }
+  };
+
   // Selected task state for Agent Plan
   const [selectedPlanTaskId, setSelectedPlanTaskId] = useState<string | null>(null);
 
@@ -521,7 +623,12 @@ export default function App() {
     setTasks(cleanTasks);
 
     if (user && (changedTasks.length > 0 || deletedTaskIds.length > 0)) {
-      saveTasksBatchToFirestore(user.uid, changedTasks, deletedTaskIds);
+      try {
+        await saveTasksBatchToFirestore(user.uid, changedTasks, deletedTaskIds);
+        triggerSyncNotification("Tasks synced safely to Firestore");
+      } catch (err) {
+        console.error("Failed to sync tasks to Firestore:", err);
+      }
     }
   };
 
@@ -659,7 +766,12 @@ export default function App() {
     setHabits(updatedHabits);
 
     if (user && (changedHabits.length > 0 || deletedHabitIds.length > 0)) {
-      saveHabitsBatchToFirestore(user.uid, changedHabits, deletedHabitIds);
+      try {
+        await saveHabitsBatchToFirestore(user.uid, changedHabits, deletedHabitIds);
+        triggerSyncNotification("Habit tracking synced to Firestore");
+      } catch (err) {
+        console.error("Failed to sync habits to Firestore:", err);
+      }
     }
   };
 
@@ -691,7 +803,12 @@ export default function App() {
     const updated = stateRef.current.tasks.filter(t => t.id !== taskId);
     setTasks(updated);
     if (user) {
-      await deleteTaskFromFirestore(user.uid, taskId);
+      try {
+        await deleteTaskFromFirestore(user.uid, taskId);
+        triggerSyncNotification("Task deleted & synced safely");
+      } catch (err) {
+        console.error("Failed to delete task from Firestore:", err);
+      }
     }
   };
 
@@ -714,7 +831,12 @@ export default function App() {
     setTasks(updated);
     const updatedTask = updated.find(t => t.id === taskId);
     if (user && updatedTask) {
-      await saveTaskToFirestore(user.uid, updatedTask);
+      try {
+        await saveTaskToFirestore(user.uid, updatedTask);
+        triggerSyncNotification("Task status updated & synced");
+      } catch (err) {
+        console.error("Failed to update task in Firestore:", err);
+      }
     }
   };
 
@@ -889,7 +1011,12 @@ export default function App() {
     const updated = [task, ...tasks];
     setTasks(updated);
     if (user) {
-      await saveTaskToFirestore(user.uid, task);
+      try {
+        await saveTaskToFirestore(user.uid, task);
+        triggerSyncNotification("New task synced to cloud");
+      } catch (err) {
+        console.error("Failed to add task to Firestore:", err);
+      }
     }
   };
 
@@ -898,7 +1025,12 @@ export default function App() {
     setTasks(updated);
     const completedTask = updated.find(t => t.id === taskId);
     if (user && completedTask) {
-      await saveTaskToFirestore(user.uid, completedTask);
+      try {
+        await saveTaskToFirestore(user.uid, completedTask);
+        triggerSyncNotification("Task completed & synced safely");
+      } catch (err) {
+        console.error("Failed to complete task in Firestore:", err);
+      }
     }
   };
 
@@ -1076,7 +1208,12 @@ export default function App() {
       const data = await response.json();
       setSchedule(data.schedule);
       if (user) {
-        await saveScheduleToFirestore(user.uid, data.schedule);
+        try {
+          await saveScheduleToFirestore(user.uid, data.schedule);
+          triggerSyncNotification("Schedule optimized & synced safely");
+        } catch (err) {
+          console.error("Failed to save schedule to Firestore:", err);
+        }
       }
 
       if (data.isFallback) {
@@ -1807,7 +1944,12 @@ export default function App() {
       </div>
 
       {/* MAIN CONTAINER */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" id="primary-app-layout">
+      <main 
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" 
+        id="primary-app-layout"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className={navOrientation === "vertical" ? "lg:flex lg:flex-row lg:items-start lg:gap-8 space-y-8 lg:space-y-0" : "space-y-8"}>
           
           {/* NAVIGATION BAR - Sleek Stitch theme styling with Category Filter */}
@@ -2074,6 +2216,31 @@ export default function App() {
                   <ChevronDown className="h-3 w-3" />
                 </div>
               </motion.div>
+
+              {/* Clear Filters Button next to Category Dropdown */}
+              <AnimatePresence>
+                {(selectedCategory !== "all" || searchQuery.trim() !== "") && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9, x: -10 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, x: -10 }}
+                    transition={{ type: "spring", stiffness: 220, damping: 22 }}
+                    onClick={() => {
+                      setSelectedCategory("all");
+                      setSearchQuery("");
+                      triggerSyncNotification("All filters and searches reset");
+                    }}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95 whitespace-nowrap bg-amber-500/10 hover:bg-amber-500/25 border-amber-500/30 text-amber-500 dark:text-amber-400 ${
+                      navOrientation === "vertical" ? "lg:w-full lg:py-2.5" : ""
+                    }`}
+                    title="Clear both search query and category filters"
+                    id="clear-filters-navigation-button"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span>Clear Filters</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </motion.div>
 
             {/* Quick Filters and Search Group */}
@@ -2415,6 +2582,43 @@ export default function App() {
               className="text-zinc-500 hover:text-zinc-300 ml-1 p-1"
             >
               ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FIRESTORE SYNC TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {syncToast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 260, damping: 25 }}
+            className="fixed bottom-6 right-6 bg-zinc-950/90 backdrop-blur-md border border-emerald-500/30 dark:border-emerald-500/20 shadow-2xl pl-3 pr-4 py-2.5 rounded-xl flex items-center gap-3 z-50 text-xs font-mono select-none"
+            id="firestore-sync-toast"
+          >
+            <div className="relative flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <Cloud className="h-3.5 w-3.5 animate-pulse" />
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-zinc-100 font-bold tracking-tight uppercase text-[10px] flex items-center gap-1">
+                Firestore Synced
+              </span>
+              <span className="text-zinc-400 text-[10px] leading-tight">
+                {syncToast.message}
+              </span>
+            </div>
+            <button
+              onClick={() => setSyncToast(prev => ({ ...prev, show: false }))}
+              className="text-zinc-500 hover:text-zinc-300 ml-2 p-0.5 rounded-md hover:bg-zinc-800/50 transition-all cursor-pointer"
+              title="Close notification"
+            >
+              <X className="h-3.5 w-3.5" />
             </button>
           </motion.div>
         )}
