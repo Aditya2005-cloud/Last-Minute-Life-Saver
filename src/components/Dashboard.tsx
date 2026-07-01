@@ -130,7 +130,7 @@ export default function Dashboard({
       localStorage.setItem("deadline_genie_selected_category", cat);
     }
   };
-  const [sortBy, setSortBy] = useState<"dueDate" | "importance" | "creation" | "urgency">("dueDate");
+  const [sortBy, setSortBy] = useState<"dueDate" | "importance" | "creation" | "urgency" | "smart">("dueDate");
 
   // AI Audio Nudge States
   const [nudgeLoading, setNudgeLoading] = useState<Record<string, boolean>>({});
@@ -538,7 +538,48 @@ export default function Dashboard({
       // But wait, the user asked for a dropdown to sort by Due Date, Importance Score, or Creation Date.
       // So we should sort primarily by the selected option.
       
-      if (sortBy === "urgency") {
+      if (sortBy === "smart") {
+        const getSmartScore = (task: Task) => {
+          const pScore = task.panicScore ?? 45; // default moderate panic
+          
+          // Calculate deadline proximity score
+          let proxScore = 15;
+          if (task.dueDate) {
+            const now = new Date();
+            const due = new Date(task.dueDate);
+            const diffMs = due.getTime() - now.getTime();
+            const diffDays = diffMs / (1000 * 60 * 60 * 24);
+            if (diffDays < 0) {
+              proxScore = 100; // Overdue tasks are highest priority
+            } else if (diffDays <= 1) {
+              proxScore = 90; // Due today/tomorrow
+            } else if (diffDays <= 3) {
+              proxScore = 75; // Due in 3 days
+            } else if (diffDays <= 7) {
+              proxScore = 50; // Due in a week
+            } else if (diffDays <= 14) {
+              proxScore = 30; // Due in two weeks
+            } else {
+              proxScore = 10; // Further out
+            }
+          }
+          
+          const impMap = { high: 100, medium: 60, low: 25 };
+          const impScore = impMap[task.importance] ?? 50;
+          
+          // Combine: 45% Panic Score + 35% Deadline Proximity + 20% Importance Score
+          return (pScore * 0.45) + (proxScore * 0.35) + (impScore * 0.20);
+        };
+
+        const aSmart = getSmartScore(a);
+        const bSmart = getSmartScore(b);
+        if (aSmart !== bSmart) return bSmart - aSmart; // Descending (highest smart score first)
+        
+        // Tiebreaker by due date
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        if (aDate !== bDate) return aDate - bDate;
+      } else if (sortBy === "urgency") {
         const aScore = a.panicScore ?? 0;
         const bScore = b.panicScore ?? 0;
         if (aScore !== bScore) return bScore - aScore; // Descending (highest panic/urgency first)
@@ -1148,7 +1189,7 @@ export default function Dashboard({
             <div className="relative">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as "dueDate" | "importance" | "creation" | "urgency")}
+                onChange={(e) => setSortBy(e.target.value as "dueDate" | "importance" | "creation" | "urgency" | "smart")}
                 className="bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700/80 text-white rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer"
                 id="sort-filter-select"
               >
@@ -1156,13 +1197,14 @@ export default function Dashboard({
                 <option value="urgency">{t.urgency}</option>
                 <option value="importance">{t.importance}</option>
                 <option value="creation">{t.creation}</option>
+                <option value="smart">Smart Sort</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400">
                 <SlidersHorizontal className="h-3 w-3" />
               </div>
             </div>
 
-            {/* Quick Toggle Due Date / Urgency */}
+            {/* Quick Toggle Due Date / Urgency / Smart Sort */}
             <div className="flex items-center bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setSortBy("dueDate")}
@@ -1189,6 +1231,19 @@ export default function Dashboard({
               >
                 <Flame className="h-3.5 w-3.5 text-red-500" />
                 <span className={sortBy === "urgency" ? "text-white" : "text-zinc-400 hover:text-white"}>{t.urgency}</span>
+              </button>
+              <button
+                onClick={() => setSortBy("smart")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer ${
+                  sortBy === "smart"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+                title="Smart Sort (Panic + Proximity + Importance)"
+                id="btn-sort-smart"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                <span className={sortBy === "smart" ? "text-white" : "text-zinc-400 hover:text-white"}>Smart Sort</span>
               </button>
             </div>
 
@@ -1303,20 +1358,25 @@ export default function Dashboard({
                 }
               }
 
-              return (
+               return (
                 <motion.div
                   key={task.id}
                   layout="position"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={
+                    task.completed
+                      ? { opacity: 0, scale: 1.06, y: -8, filter: "blur(2px)" }
+                      : { opacity: 0, scale: 0.95 }
+                  }
                   transition={{
                     type: "spring",
                     stiffness: 320,
                     damping: 28,
                     mass: 0.8,
                     opacity: { duration: 0.2 },
-                    y: { type: "spring", stiffness: 350, damping: 25 }
+                    y: { type: "spring", stiffness: 350, damping: 25 },
+                    scale: { duration: 0.25, ease: "easeOut" }
                   }}
                   draggable={!task.completed}
                   onDragStart={(e) => handleDragStart(e as any, task.id)}

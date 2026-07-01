@@ -10,6 +10,7 @@ import HabitTracker from "./components/HabitTracker";
 import PanicButton from "./components/PanicButton";
 import BufferShield from "./components/BufferShield";
 import AppLockScreen from "./components/AppLockScreen";
+import { CategoryPieChart } from "./components/CategoryPieChart";
 
 const LandingPage3D = React.lazy(() => import("./components/LandingPage3D"));
 
@@ -69,7 +70,11 @@ import {
   Download,
   Columns,
   Rows,
-  Cloud
+  Cloud,
+  TrendingUp,
+  Bell,
+  BellRing,
+  BellOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -206,13 +211,46 @@ export default function App() {
     return saved || "all";
   });
 
+  // State to show the transient reset confirmation overlay
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
   // Sync selectedCategory to localStorage
   useEffect(() => {
     localStorage.setItem("deadline_genie_selected_category", selectedCategory);
   }, [selectedCategory]);
 
+  // Track the last non-'all' selected category for toggling behavior on the pie chart/container
+  const lastSelectedCategoryRef = useRef<string>("all");
+  useEffect(() => {
+    if (selectedCategory !== "all") {
+      lastSelectedCategoryRef.current = selectedCategory;
+    }
+  }, [selectedCategory]);
+
+  // Track the last 3 selected categories persistently
+  const [recentCategories, setRecentCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("deadline_genie_recent_categories");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (selectedCategory && selectedCategory !== "all") {
+      setRecentCategories((prev) => {
+        const filtered = prev.filter((cat) => cat.toLowerCase() !== selectedCategory.toLowerCase());
+        const updated = [selectedCategory, ...filtered].slice(0, 3);
+        localStorage.setItem("deadline_genie_recent_categories", JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [selectedCategory]);
+
   // Selected search query for the global search input
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
 
   // Authentication State
   const [showLanding, setShowLanding] = useState<boolean>(true);
@@ -245,6 +283,65 @@ export default function App() {
     const saved = localStorage.getItem("crisis_helper_tasks");
     return saved ? JSON.parse(saved) : DEFAULT_TASKS;
   });
+
+  // Extract trending keywords based on user tasks
+  const trendingKeywords = useMemo(() => {
+    const wordCounts: Record<string, number> = {};
+    const stopWords = new Set([
+      "the", "and", "for", "with", "your", "this", "that", "from", "have", "will",
+      "chapter", "mechanics", "immediate", "first", "step", "write-up", "chapter",
+      "high", "medium", "low", "some", "about", "their", "them", "then", "there",
+      "with", "without", "under", "over", "into", "onto", "upon", "task", "tasks",
+      "finish", "need", "should", "want", "study", "work", "leisure", "health", "ready",
+      "isolate", "cognitive", "sweep"
+    ]);
+
+    tasks.forEach((task) => {
+      // Category is highly relevant
+      if (task.category) {
+        const cat = task.category.toLowerCase().trim();
+        if (cat.length > 1) {
+          wordCounts[cat] = (wordCounts[cat] || 0) + 3;
+        }
+      }
+
+      // requiredResources are also good keywords
+      if (task.breakdown?.requiredResources) {
+        task.breakdown.requiredResources.forEach((res) => {
+          const words = res.toLowerCase().split(/[\s,.-]+/);
+          words.forEach((w) => {
+            const clean = w.trim();
+            if (clean.length > 2 && !stopWords.has(clean) && isNaN(Number(clean))) {
+              wordCounts[clean] = (wordCounts[clean] || 0) + 1.5;
+            }
+          });
+        });
+      }
+
+      // Title words
+      if (task.title) {
+        const words = task.title.toLowerCase().split(/[\s,.-]+/);
+        words.forEach((w) => {
+          const clean = w.trim();
+          if (clean.length > 3 && !stopWords.has(clean) && isNaN(Number(clean))) {
+            wordCounts[clean] = (wordCounts[clean] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const sorted = Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map((entry) => entry[0]);
+
+    const capitalized = sorted.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+    const unique = Array.from(new Set(capitalized));
+    
+    // Nice default fallbacks if there are no tasks
+    const fallbacks = ["Study", "Work", "Health", "Leisure", "Code", "Report"];
+    const merged = Array.from(new Set([...unique, ...fallbacks]));
+    return merged.slice(0, 5);
+  }, [tasks]);
 
   // Proactive Buffer Shield state
   const [bufferOffsetHours, setBufferOffsetHours] = useState<number>(() => {
@@ -287,6 +384,13 @@ export default function App() {
     const combined = Array.from(new Set([...cats, ...defaultCats]));
     return combined;
   }, [tasks]);
+
+  // Keep only currently valid categories in the recent categories list
+  const validRecentCategories = useMemo(() => {
+    return recentCategories.filter((cat) =>
+      uniqueCategories.some((uniqueCat) => uniqueCat.toLowerCase() === cat.toLowerCase())
+    );
+  }, [recentCategories, uniqueCategories]);
 
   // Compute incomplete high-priority task count
   const incompleteHighPriorityCount = useMemo(() => {
@@ -798,6 +902,93 @@ export default function App() {
     setVoiceFeedback(text);
     setTimeout(() => setVoiceFeedback(""), 4000);
   };
+
+  // Browser Notification States
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return Notification.permission;
+    }
+    return "default";
+  });
+
+  const requestNotificationPermission = async () => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+        if (permission === "granted") {
+          new Notification("Notifications Configured", {
+            body: "DeadlineGenie will notify you 30 minutes before your tasks are due!",
+            icon: "/favicon.ico"
+          });
+          triggerSyncNotification("Browser notifications configured successfully!");
+          speakNotification("Notifications activated. You will be alerted before deadlines hit.");
+        } else if (permission === "denied") {
+          triggerSyncNotification("Notification permission was denied. Standard alerts will play in-app.");
+          speakNotification("Permission denied. Keeping alerts strictly in-app.");
+        }
+      } catch (err) {
+        console.error("Error requesting notification permission:", err);
+      }
+    } else {
+      triggerSyncNotification("Notifications are not supported in this browser.");
+    }
+  };
+
+  // Notified tasks registry & timing cache
+  const notifiedTasksRef = useRef<Record<string, boolean>>({});
+  const lastNotificationCheckedMin = useRef<number>(-1);
+
+  // Monitor deadlines and fire browser notifications when within 30 minutes
+  useEffect(() => {
+    const currentMin = Math.floor(currentTime.getTime() / 60000);
+    if (currentMin === lastNotificationCheckedMin.current) return;
+    lastNotificationCheckedMin.current = currentMin;
+
+    tasks.forEach((task) => {
+      if (task.completed || !task.dueDate) return;
+
+      // Robust local date / ISO parser
+      let dueTime: number;
+      if (task.dueDate.includes("T")) {
+        dueTime = new Date(task.dueDate).getTime();
+      } else {
+        const [year, month, day] = task.dueDate.split("-").map(Number);
+        // Default to end-of-day (23:59:59) for raw YYYY-MM-DD deadlines
+        dueTime = new Date(year, month - 1, day, 23, 59, 59).getTime();
+      }
+
+      const diffMs = dueTime - currentTime.getTime();
+      const diffMins = diffMs / 60000;
+
+      // Within 30 minutes, but not overdue
+      if (diffMins > 0 && diffMins <= 30) {
+        if (!notifiedTasksRef.current[task.id]) {
+          notifiedTasksRef.current[task.id] = true;
+
+          const timeLeftStr = Math.round(diffMins) === 1 ? "1 minute" : `${Math.round(diffMins)} minutes`;
+          const title = `⚠️ Deadline Approaching: ${task.title}`;
+          const body = `This high-priority objective is due in ${timeLeftStr}!`;
+
+          // 1. System notification if granted
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification(title, {
+                body,
+                icon: "/favicon.ico"
+              });
+            } catch (err) {
+              console.warn("System notification could not be dispatched:", err);
+            }
+          }
+
+          // 2. In-app visual Toast & speech feedback
+          triggerSyncNotification(`⚠️ "${task.title}" is due in ${timeLeftStr}!`);
+          speakNotification(`Attention. Your objective "${task.title}" is due in ${timeLeftStr}. Please review.`);
+        }
+      }
+    });
+  }, [currentTime, tasks]);
 
   const handleDeleteTask = async (taskId: string) => {
     const updated = stateRef.current.tasks.filter(t => t.id !== taskId);
@@ -1413,6 +1604,41 @@ export default function App() {
                 <span>{t.highPanicRisk}</span>
               </div>
             )}
+
+            {/* BROWSER NOTIFICATIONS CONTROLLER */}
+            <button
+              onClick={requestNotificationPermission}
+              className={`flex items-center gap-2 px-3 py-1.5 h-8 rounded-xl border font-mono font-bold text-[10px] uppercase transition-all cursor-pointer select-none active:scale-98 shadow-sm ${
+                notificationPermission === "granted"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                  : notificationPermission === "denied"
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                  : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              }`}
+              id="browser-notification-permission-button"
+              title={
+                notificationPermission === "granted"
+                  ? "Browser Notifications Enabled"
+                  : notificationPermission === "denied"
+                  ? "Browser Notifications Blocked. Click to try requesting again."
+                  : "Enable Browser Notifications (Alert 30 mins before deadline)"
+              }
+            >
+              {notificationPermission === "granted" ? (
+                <BellRing className="h-3.5 w-3.5 text-emerald-400 animate-bounce" />
+              ) : notificationPermission === "denied" ? (
+                <BellOff className="h-3.5 w-3.5 text-rose-400" />
+              ) : (
+                <Bell className="h-3.5 w-3.5 text-zinc-400" />
+              )}
+              <span className="hidden sm:inline">
+                {notificationPermission === "granted"
+                  ? "ALERTS ON"
+                  : notificationPermission === "denied"
+                  ? "ALERTS BLOCKED"
+                  : "ENABLE ALERTS"}
+              </span>
+            </button>
             
             <div className="relative">
               <div 
@@ -2183,21 +2409,66 @@ export default function App() {
               {/* Category Filter Dropdown next to Navigation Tabs */}
               <motion.div 
                 layout
-                transition={{ type: "spring", stiffness: 180, damping: 25 }}
-                className={`relative shrink-0 flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl px-2.5 py-1.5 shadow-sm ${
+                whileHover={{ scale: 1.05 }}
+                animate={selectedCategory === "all" ? "allBounce" : "categoryBounce"}
+                variants={{
+                  allBounce: {
+                    y: [0, -8, 3, -1, 0],
+                    scale: [1, 1.08, 0.96, 1.02, 1],
+                    transition: { duration: 0.5, ease: "easeInOut" }
+                  },
+                  categoryBounce: {
+                    y: [0, -8, 3, -1, 0],
+                    scale: [1, 1.08, 0.96, 1.02, 1],
+                    transition: { duration: 0.5, ease: "easeInOut" }
+                  }
+                }}
+                className={`relative shrink-0 flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-xl px-2.5 py-1.5 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer transition-colors duration-200 ${
                   navOrientation === "vertical"
                     ? "lg:w-full lg:justify-between"
                     : ""
                 }`} 
                 id="nav-category-dropdown-container"
+                onClick={(e) => {
+                  // Intercept click on the container/icon/pie chart area to toggle/reset
+                  const isSelect = (e.target as HTMLElement).closest("select");
+                  const isButton = (e.target as HTMLElement).closest("button");
+                  if (!isSelect && !isButton) {
+                    if (selectedCategory !== "all") {
+                      setShowResetConfirm(true);
+                    } else {
+                      // Toggle back to previously selected category (or first custom category)
+                      const targetCat = lastSelectedCategoryRef.current !== "all"
+                        ? lastSelectedCategoryRef.current
+                        : (uniqueCategories.length > 0 ? uniqueCategories[0] : "all");
+                      
+                      if (targetCat !== "all") {
+                        setSelectedCategory(targetCat);
+                        triggerSyncNotification(`Toggled filter to ${targetCat}`);
+                        speakNotification(`Filtering by ${targetCat}.`);
+                      }
+                    }
+                  }
+                }}
+                title={
+                  selectedCategory !== "all"
+                    ? `Click pie/container to toggle back to 'All' (Current: ${selectedCategory})`
+                    : "Click pie/container to toggle back to your last active category"
+                }
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 text-amber-500" />
+                <CategoryPieChart tasks={tasks} selectedCategory={selectedCategory} />
                 <select
                   value={selectedCategory}
                   onChange={(e) => {
-                    setSelectedCategory(e.target.value);
-                    if (activeTab !== "dashboard" && activeTab !== "insights") {
-                      setActiveTab("dashboard");
+                    const val = e.target.value;
+                    if (val === "all") {
+                      setShowResetConfirm(true);
+                    } else {
+                      setSelectedCategory(val);
+                      if (activeTab !== "dashboard" && activeTab !== "insights") {
+                        setActiveTab("dashboard");
+                      }
                     }
                   }}
                   className="bg-transparent text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white text-xs font-bold font-mono focus:outline-none transition-all cursor-pointer border-none outline-none pr-5 pl-1 py-0.5 appearance-none flex-1"
@@ -2206,15 +2477,91 @@ export default function App() {
                   <option value="all" className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
                     All Categories
                   </option>
-                  {uniqueCategories.map((cat) => (
-                    <option key={cat} value={cat} className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
-                      {cat}
-                    </option>
-                  ))}
+                  
+                  {validRecentCategories.length > 0 && (
+                    <optgroup label="⏱️ Recent Categories" className="bg-zinc-100 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 font-mono text-[9px] uppercase tracking-wider">
+                      {validRecentCategories.map((cat) => (
+                        <option key={`recent-${cat}`} value={cat} className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
+                          ⏱️ {cat}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  <optgroup label="📂 All Categories" className="bg-zinc-100 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-500 font-mono text-[9px] uppercase tracking-wider">
+                    {uniqueCategories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 font-mono">
+                        {cat}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <div className="pointer-events-none absolute right-2 flex items-center text-zinc-400">
                   <ChevronDown className="h-3 w-3" />
                 </div>
+
+                {/* Full Screen Reset Confirmation Modal Overlay */}
+                <AnimatePresence>
+                  {showResetConfirm && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-zinc-950/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4 cursor-default"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowResetConfirm(false); // Cancel on backdrop click
+                      }}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.92, y: 15 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.92, y: 15 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                        className="bg-white dark:bg-zinc-900 border-t-4 border-t-amber-500 border-x border-b border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full flex flex-col items-center text-center gap-4 relative overflow-hidden"
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking dialog itself
+                      >
+                        {/* Styled Icon */}
+                        <div className="h-12 w-12 rounded-full bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-center text-amber-500 animate-pulse">
+                          <AlertTriangle className="h-6 w-6" />
+                        </div>
+
+                        {/* Title and Content */}
+                        <div className="flex flex-col gap-1.5">
+                          <h3 className="text-base font-extrabold font-mono tracking-tight text-zinc-900 dark:text-zinc-50">
+                            Reset Category Filter?
+                          </h3>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed">
+                            This will clear your active category filter and restore the view to show all tasks across your dashboard. Are you sure you want to proceed?
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 w-full mt-1">
+                          <button
+                            onClick={() => {
+                              setSelectedCategory("all");
+                              setShowResetConfirm(false);
+                              triggerSyncNotification("Reset category filter to All");
+                              speakNotification("Resetting filter to all categories.");
+                            }}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-mono text-xs font-bold shadow-md cursor-pointer transition-all duration-150 transform active:scale-95"
+                          >
+                            Yes, Show All
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowResetConfirm(false);
+                            }}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-mono text-xs font-bold border border-zinc-200 dark:border-zinc-700/50 cursor-pointer transition-all duration-150 transform active:scale-95"
+                          >
+                            No, Keep Filter
+                          </button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Clear Filters Button next to Category Dropdown */}
@@ -2266,6 +2613,8 @@ export default function App() {
                 <input
                   type="text"
                   value={searchQuery}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     if (activeTab !== "dashboard" && activeTab !== "insights") {
@@ -2286,6 +2635,47 @@ export default function App() {
                     <X className="h-3 w-3" />
                   </button>
                 )}
+
+                {/* Trending Search Keywords Popover */}
+                <AnimatePresence>
+                  {isSearchFocused && trendingKeywords.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 shadow-2xl z-50 text-left"
+                      id="trending-search-keywords-container"
+                    >
+                      <div className="flex items-center gap-1.5 mb-2 text-zinc-400 dark:text-zinc-500 font-mono text-[10px] tracking-wider uppercase font-bold">
+                        <TrendingUp className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                        <span>Trending Keywords</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5" id="trending-keywords-list">
+                        {trendingKeywords.map((keyword) => (
+                          <motion.button
+                            key={keyword}
+                            whileHover={{ scale: 1.04 }}
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => {
+                              setSearchQuery(keyword);
+                              if (activeTab !== "dashboard" && activeTab !== "insights") {
+                                setActiveTab("dashboard");
+                              }
+                              triggerSyncNotification(`Filtering by: ${keyword}`);
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium font-sans bg-zinc-100 hover:bg-amber-500/10 dark:bg-zinc-800/80 dark:hover:bg-amber-500/15 border border-zinc-200 hover:border-amber-500/30 dark:border-zinc-750 dark:hover:border-amber-500/40 text-zinc-600 hover:text-amber-600 dark:text-zinc-300 dark:hover:text-amber-400 rounded-lg transition-all cursor-pointer shadow-sm"
+                            title={`Search for "${keyword}"`}
+                            id={`trending-keyword-item-${keyword.toLowerCase()}`}
+                          >
+                            <Search className="h-2.5 w-2.5 opacity-50" />
+                            <span>{keyword}</span>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Category Navigation Tabs with Badge Counts */}

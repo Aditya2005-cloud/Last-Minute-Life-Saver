@@ -127,10 +127,6 @@ Contributions make the open-source community an amazing place to learn, inspire,
 5. Open a Pull Request
 
 ---
-## Drive link for documention 
-
-https://docs.google.com/document/d/1hlNlyhcY_hcJKK0wcu4cqDII53NKQuby/edit?usp=drivesdk&ouid=109735196744443954718&rtpof=true&sd=true
-
 
 ## 📄 License
 
